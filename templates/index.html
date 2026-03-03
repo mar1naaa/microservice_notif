@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Catalog</title>
+</head>
+<body>
+  <h1>Витрина</h1>
+
+  {{range .Products}}
+    <div style="border:1px solid #ccc; padding:10px; width:250px;">
+      <div>{{.Name}}</div>
+      <img src="{{.ImageURL}}" width="200" />
+    </div>
+  {{end}}
+
+</body>
+</html>
