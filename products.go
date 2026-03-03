@@ -1,32 +1,59 @@
 package main
 
 import (
-	"html/template"
+	"context"
+	"encoding/json"
+	"fmt"
 	"log"
-	"net/http"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Product struct {
-	Name     string
-	ImageURL string
-}
-
-type PageData struct {
-	Products []Product
+	SKU         string  `json:"sku" db:"sku"`
+	Name        string  `json:"name" db:"name"`
+	Brand       string  `json:"brand" db:"brand"`
+	Description string  `json:"description" db:"description"`
+	Price       float64 `json:"price" db:"price"`
+	ImageURL    string  `json:"image_url" db:"image_url"`
+	Quantity    int     `json:"quantity" db:"quantity"`
 }
 
 func main() {
-	// 1) mux — маршрутизатор
-	mux := http.NewServeMux()
+	// Создание пула соединений
+	pool, err := pgxpool.New(context.Background(), "postgres://postgres:140701@localhost:5432/Products")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer pool.Close()
 
-	// 2) Раздача статических файлов:
-	// URL:  /static/...
-	// Disk: ./uploads/...
-	fs := http.FileServer(http.Dir("./uploads"))
-	mux.Handle("/static/", http.StripPrefix("/static/", fs))
+	rows, err := pool.Query(context.Background(), `
+		SELECT sku, name, brand, description, price, image_url, quantity 
+		FROM products 
+		ORDER BY sku
+	`)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+	products := []Product{}
+	for rows.Next() {
+		var p Product
+		err := rows.Scan(&p.SKU, &p.Name, &p.Brand, &p.Description, &p.Price, &p.ImageURL, &p.Quantity)
+		if err != nil {
+			log.Fatal(err)
+		}
+		products = append(products, p)
+	}
+	if rows.Err() != nil {
+		log.Fatal(rows.Err())
+	}
 
-	// 3) Главная страница (HTML)
-	tmpl := template.Must(template.ParseFiles("./templates/index.html"))
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		data := PageData{
-			Products: []Product{					
+	jsonData, err := json.MarshalIndent(products, "", "  ")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("\nТовары в JSON:")
+	fmt.Println(string(jsonData))
+}
