@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+var pool *pgxpool.Pool
 
 type Product struct {
 	SKU         string  `json:"sku" db:"sku"`
@@ -20,40 +22,47 @@ type Product struct {
 }
 
 func main() {
-	// Создание пула соединений
-	pool, err := pgxpool.New(context.Background(), "postgres://postgres:140701@localhost:5432/Products")
+	var err error
+	pool, err = pgxpool.New(context.Background(), "postgres://postgres:140701@localhost:5432/Products")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer pool.Close()
 
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/products", productsHandler)
+	fs := http.FileServer(http.Dir("static"))
+	mux.Handle("/", fs)
+
+	log.Println("Server starting on :9000")
+	http.ListenAndServe(":9000", mux)
+}
+
+func productsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 	rows, err := pool.Query(context.Background(), `
 		SELECT sku, name, brand, description, price, image_url, quantity 
 		FROM products 
 		ORDER BY sku
 	`)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		http.Error(w, "db error", http.StatusInternalServerError)
+		return
 	}
 	defer rows.Close()
 	products := []Product{}
 	for rows.Next() {
 		var p Product
-		err := rows.Scan(&p.SKU, &p.Name, &p.Brand, &p.Description, &p.Price, &p.ImageURL, &p.Quantity)
-		if err != nil {
-			log.Fatal(err)
+		if err := rows.Scan(&p.SKU, &p.Name, &p.Brand, &p.Description, &p.Price, &p.ImageURL, &p.Quantity); err != nil {
+			log.Println(err)
+			http.Error(w, "scan error", http.StatusInternalServerError)
+			return
 		}
 		products = append(products, p)
 	}
-	if rows.Err() != nil {
-		log.Fatal(rows.Err())
-	}
-
-	jsonData, err := json.MarshalIndent(products, "", "  ")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("\nТовары в JSON:")
-	fmt.Println(string(jsonData))
+	json.NewEncoder(w).Encode(products)
 }
