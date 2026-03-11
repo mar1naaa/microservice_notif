@@ -1,201 +1,533 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BeautyShop — Магазин косметики</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        :root { --primary-color: #e91e63; --gradient: linear-gradient(135deg, #e91e63, #9c27b0); }
-        body { background-color: #fafafa; font-family: system-ui, sans-serif; }
-        .navbar { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .logo { font-weight: 700; color: var(--primary-color) !important; font-size: 1.5rem; }
-        .product-card { 
-            transition: all 0.3s ease; 
-            border: none; 
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08); 
-            overflow: hidden;
-            border-radius: 16px;
-        }
-        .product-card:hover { 
-            transform: translateY(-10px); 
-            box-shadow: 0 20px 40px rgba(233,30,99,0.2); 
-        }
-        .product-img { 
-            width: 100%; 
-            height: 240px; 
-            object-fit: cover; 
-            border-radius: 16px 16px 0 0;
-        }
-        .product-title { 
-            color: #333; 
-            font-weight: 600; 
-            font-size: 1.05rem;
-            line-height: 1.3;
-        }
-        .product-brand { 
-            color: #666; 
-            font-size: 0.8rem; 
-            text-transform: uppercase; 
-            letter-spacing: 0.5px;
-            margin-bottom: 0.25rem;
-        }
-        .product-price { 
-            color: var(--primary-color); 
-            font-weight: 700; 
-            font-size: 1.35rem;
-        }
-        .simple-cart-btn { 
-            border-radius: 10px; 
-            font-weight: 600; 
-            transition: all 0.2s ease;
-        }
-        .navbar .nav-link:hover {
-            background-color: rgba(233, 30, 99, 0.1);
-            color: var(--primary-color) !important;
-            border-radius: 50px;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BeautyShop</title>
+
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root {
+      --primary-color: #e91e63;
+      --gradient: linear-gradient(135deg, #e91e63, #9c27b0);
+    }
+
+    body {
+      background-color: #fafafa;
+      font-family: system-ui, sans-serif;
+    }
+
+    .navbar {
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .logo {
+      font-weight: 700;
+      color: var(--primary-color) !important;
+      font-size: 1.5rem;
+      text-decoration: none;
+    }
+
+    .product-card {
+      transition: all 0.3s ease;
+      border: none;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+      border-radius: 16px;
+      background: white;
+      cursor: pointer;
+      height: 100%;
+    }
+
+    .product-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 20px 40px rgba(233, 30, 99, 0.2);
+    }
+
+    .product-img {
+      width: 100%;
+      height: 240px;
+      object-fit: cover;
+      border-radius: 16px 16px 0 0;
+      background: #f3f3f3;
+    }
+
+    .product-title {
+      color: #333;
+      font-weight: 600;
+      transition: color 0.3s;
+      font-size: 1.05rem;
+      line-height: 1.3;
+      min-height: 48px;
+    }
+
+    .product-title:hover {
+      color: var(--primary-color);
+    }
+
+    .product-brand {
+      color: #666;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.25rem;
+    }
+
+    .product-price {
+      color: var(--primary-color);
+      font-weight: 700;
+      font-size: 1.35rem;
+      margin-bottom: 1rem;
+    }
+
+    .simple-cart-btn {
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border-width: 2px;
+      transition: all 0.2s ease;
+      padding: 0.6rem 1rem;
+    }
+
+    .simple-cart-btn:hover {
+      background-color: var(--primary-color) !important;
+      border-color: var(--primary-color) !important;
+      color: white !important;
+    }
+
+    .hero-title {
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .card-body {
+      padding: 1.5rem;
+    }
+
+    .cart-icon {
+      position: relative;
+      color: #666;
+      font-size: 1.3rem;
+      transition: color 0.3s;
+      text-decoration: none;
+    }
+
+    .cart-icon:hover {
+      color: var(--primary-color) !important;
+    }
+
+    .cart-badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: var(--primary-color);
+      color: white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      font-size: 0.7rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+
+    .loading-box,
+    .error-box,
+    .empty-box {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .custom-modal-content {
+      border: none;
+      border-radius: 26px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+      position: relative;
+    }
+
+    .custom-modal-body {
+      padding: 3rem 2.5rem;
+    }
+
+    .custom-modal-close {
+      position: absolute;
+      top: 22px;
+      right: 22px;
+      z-index: 10;
+      transform: scale(1.2);
+    }
+
+    .custom-modal-image-wrap {
+      background: #f6f6f6;
+      border-radius: 22px;
+      padding: 12px;
+      height: 100%;
+}
+
+    .custom-modal-image {
+      width: 100%;
+      height: 500px;
+      object-fit: cover;
+      display: block;
+      border-radius: 18px;
+}
+
+
+    .custom-modal-title {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: #111;
+      margin-bottom: 0.5rem;
+      line-height: 1.15;
+    }
+
+    .custom-modal-brand {
+      text-transform: uppercase;
+      font-size: 0.95rem;
+      color: #666;
+      margin-bottom: 1.5rem;
+    }
+
+    .custom-modal-price {
+      color: var(--primary-color);
+      font-size: 3.2rem;
+      font-weight: 700;
+      margin-bottom: 2rem;
+      line-height: 1;
+    }
+
+    .custom-buy-btn {
+      background: #dc3545;
+      border: none;
+      color: white;
+      font-weight: 700;
+      font-size: 1.15rem;
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    .custom-buy-btn:hover {
+      background: #c82333;
+      color: white;
+    }
+
+    .custom-buy-btn:disabled {
+      background: #bdbdbd;
+      cursor: not-allowed;
+    }
+
+    .custom-modal-subtitle {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #111;
+      margin-bottom: 1rem;
+    }
+
+    .custom-modal-description {
+      font-size: 1.15rem;
+      line-height: 1.85;
+      color: #5a5a5a;
+    }
+
+    @media (max-width: 991px) {
+      .custom-modal-body {
+        padding: 2rem 1.5rem;
+      }
+
+      .custom-modal-image {
+        height: 320px;
+      }
+
+      .custom-modal-title {
+        font-size: 1.7rem;
+      }
+
+      .custom-modal-price {
+        font-size: 2.4rem;
+      }
+
+      .custom-modal-subtitle {
+        font-size: 1.4rem;
+      }
+    }
+  </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
-        <div class="container">
-            <a class="navbar-brand logo" href="/">BeautyShop</a>
-            <div class="ms-auto d-flex align-items-center">
-                <a class="nav-link position-relative px-3" href="/cart">
-                    <i class="bi bi-bag fs-4"></i>
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="cartBadgeNav" style="display: none;">0</span>
-                </a>
-                <a class="nav-link position-relative px-3 ms-2" href="/orders">
-                    <i class="bi bi-box-seam fs-4"></i>
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success" id="ordersBadgeNav" style="display: none;">0</span>
-                </a>
-            </div>
-        </div>
-    </nav>
+  <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
+    <div class="container">
+      <a class="navbar-brand logo" href="main.html">BeautyShop</a>
 
-    <div class="container py-5">
-        <h2 class="mb-4 fw-bold">Наш ассортимент</h2>
-        <div class="row g-4" id="catalog">
-            <div class="col-12 text-center py-5">
-                <div class="spinner-border text-danger" role="status"></div>
-                <p class="mt-2 text-muted">Загрузка товаров...</p>
-            </div>
-        </div>
+      <div class="ms-auto d-flex align-items-center gap-4">
+        <a class="nav-link fw-semibold" href="http://localhost:9001/orders.html" >
+          Мои заказы
+        </a>
+
+        <a class="cart-icon" href="http://localhost:9001/basket.html">
+          <i class="bi bi-bag fs-4"></i>
+          <span id="cartBadgeNav" class="cart-badge" style="display: none;">0</span>
+        </a>
+      </div>
     </div>
+  </nav>
 
-    <div class="modal fade" id="productModal" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-                <div class="modal-header border-0 p-4 pb-0">
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4 p-lg-5">
-                    <div class="row g-5 align-items-start">
-                        <div class="col-lg-5">
-                            <img id="modalProductImg" src="" alt="" class="img-fluid rounded-4 shadow-sm w-100 object-fit-cover" style="height: 450px;">
-                        </div>
-                        <div class="col-lg-7">
-                            <h2 id="modalProductTitle" class="fw-bold mb-2"></h2>
-                            <div id="modalProductBrand" class="text-muted text-uppercase mb-3 small"></div>
-                            <div id="modalProductPrice" class="display-5 fw-bold text-danger mb-4"></div>
-                            <button id="modalBuyBtn" class="btn btn-danger btn-lg w-100 py-3 mb-4 rounded-3 fw-bold">
-                                Добавить в корзину
-                            </button>
-                            <h5 class="fw-bold mb-3">Описание</h5>
-                            <p id="modalDescription" class="text-muted lh-lg"></p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+  <div class="container py-5">
+    <div id="catalogWrap">
+      <div class="loading-box">Загрузка товаров...</div>
     </div>
+  </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Инициализация модального окна
-        const productModal = new bootstrap.Modal(document.getElementById('productModal'));
-        
-        // 1. ЗАГРУЗКА ДАННЫХ ИЗ GO API
-        async function fetchProducts() {
-            try {
-                const response = await fetch('/api/products'); // Запрос к твоему обработчику в products.go
-                const products = await response.json();
-                renderCatalog(products);
-            } catch (error) {
-                console.error('Ошибка загрузки:', error);
-                document.getElementById('catalog').innerHTML = `<div class="alert alert-danger">Не удалось загрузить товары. Проверьте соединение с сервером.</div>`;
-            }
-        }
+  <div class="modal fade" id="productModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+      <div class="modal-content custom-modal-content">
+        <button
+          type="button"
+          class="btn-close custom-modal-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
 
-        // 2. ОТРИСОВКА КАРТОЧЕК
-        function renderCatalog(products) {
-            const catalog = document.getElementById('catalog');
-            catalog.innerHTML = ''; // Очистка спиннера
+        <div class="modal-body custom-modal-body">
+          <div class="row g-4 align-items-center">
+            <div class="col-lg-6">
+              <div class="custom-modal-image-wrap">
+                <img
+                  id="modalProductImg"
+                  src=""
+                  alt=""
+                  class="custom-modal-image"
+                />
+              </div>
+            </div>
 
-            products.forEach(p => {
-                const card = `
-                    <div class="col-lg-3 col-md-6">
-                        <div class="card product-card h-100" onclick="openProduct(${JSON.stringify(p).replace(/"/g, '&quot;')})">
-                            <img src="${p.image_url}" class="product-img" alt="${p.name}">
-                            <div class="card-body d-flex flex-column">
-                                <div class="product-brand">${p.brand}</div>
-                                <div class="product-title mb-2">${p.name}</div>
-                                <div class="product-price mt-auto mb-3">${p.price.toLocaleString()} ₽</div>
-                                <button class="btn btn-outline-danger w-100 simple-cart-btn" 
-                                        onclick="event.stopPropagation(); addToCart('${p.name}', ${p.price})">
-                                    В корзину
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                catalog.innerHTML += card;
-            });
-        }
+            <div class="col-lg-6">
+              <h2 id="modalProductTitle" class="custom-modal-title"></h2>
+              <div id="modalProductBrand" class="custom-modal-brand"></div>
+              <div id="modalProductPrice" class="custom-modal-price"></div>
 
-        // 3. УПРАВЛЕНИЕ МОДАЛКОЙ
-        function openProduct(p) {
-            document.getElementById('modalProductTitle').textContent = p.name;
-            document.getElementById('modalProductBrand').textContent = p.brand;
-            document.getElementById('modalProductPrice').textContent = p.price.toLocaleString() + ' ₽';
-            document.getElementById('modalProductImg').src = p.image_url;
-            document.getElementById('modalDescription').textContent = p.description;
-            document.getElementById('modalBuyBtn').onclick = () => addToCart(p.name, p.price);
-            productModal.show();
-        }
+              <button
+                id="modalBuyBtn"
+                class="btn custom-buy-btn w-100"
+              >
+                Добавить в корзину
+              </button>
 
-        // 4. КОРЗИНА (LocalStorage)
-        let cartCount = parseInt(localStorage.getItem('cartCount') || '0');
+              <h4 class="custom-modal-subtitle">Описание</h4>
+              <div id="modalDescription" class="custom-modal-description"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-        function addToCart(name, price) {
-            cartCount++;
-            localStorage.setItem('cartCount', cartCount);
-            updateBadges();
-            
-            // Визуальный эффект на кнопке
-            const btn = event.target;
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '✓ Добавлено';
-            btn.classList.replace('btn-outline-danger', 'btn-success');
-            setTimeout(() => {
-                btn.innerHTML = originalText;
-                btn.classList.replace('btn-success', 'btn-outline-danger');
-            }, 1000);
-        }
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-        function updateBadges() {
-            const badge = document.getElementById('cartBadgeNav');
-            badge.textContent = cartCount;
-            badge.style.display = cartCount > 0 ? 'block' : 'none';
-        }
+  <script>
+    const PRODUCTS_API = "/api/products";
+    const CART_API = "http://localhost:9001/api";
 
-        // Запуск при загрузке страницы
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchProducts();
-            updateBadges();
+    const productModal = new bootstrap.Modal(document.getElementById("productModal"));
+    const catalogWrap = document.getElementById("catalogWrap");
+    const cartBadge = document.getElementById("cartBadgeNav");
+
+    async function loadProducts() {
+      try {
+        const response = await fetch(PRODUCTS_API);
+        if (!response.ok) throw new Error("Не удалось загрузить товары");
+
+        const products = await response.json();
+        renderProducts(products);
+      } catch (error) {
+        console.error(error);
+        catalogWrap.innerHTML = `
+          <div class="error-box">
+            <h3 class="mb-2">Ошибка загрузки</h3>
+            <p class="text-muted mb-0">Не удалось получить список товаров.</p>
+          </div>
+        `;
+      }
+    }
+
+    function renderProducts(items) {
+      if (!items.length) {
+        catalogWrap.innerHTML = `
+          <div class="empty-box">
+            <h3 class="mb-2">Товаров пока нет</h3>
+            <p class="text-muted mb-0">Каталог пуст.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const row = document.createElement("div");
+      row.className = "row g-4 mb-5 justify-content-center";
+      row.id = "catalog";
+
+      items.forEach(product => {
+        const col = document.createElement("div");
+        col.className = "col-lg-3 col-md-6 col-sm-6";
+
+        const disabled = product.quantity > 0 ? "" : "disabled";
+        const buttonText = product.quantity > 0 ? "В корзину" : "Нет в наличии";
+
+        col.innerHTML = `
+          <div class="card product-card h-100">
+            <img src="${escapeHtml(product.image_url)}" alt="${escapeHtml(product.name)}" class="card-img-top product-img">
+            <div class="card-body">
+              <div class="product-brand">${escapeHtml(product.brand)}</div>
+              <div class="product-title mb-3">${escapeHtml(product.name)}</div>
+              <div class="product-price mb-3">${formatPrice(product.price)}</div>
+              <button class="btn btn-outline-danger w-100 simple-cart-btn" ${disabled}>
+                ${buttonText}
+              </button>
+            </div>
+          </div>
+        `;
+
+        const card = col.querySelector(".product-card");
+        const addBtn = col.querySelector(".simple-cart-btn");
+
+        card.addEventListener("click", () => openProduct(product));
+
+        addBtn.addEventListener("click", (event) => {
+          event.stopPropagation();
+          addToCart(product, addBtn);
         });
-    </script>
+
+        row.appendChild(col);
+      });
+
+      catalogWrap.innerHTML = "";
+      catalogWrap.appendChild(row);
+    }
+
+    function openProduct(product) {
+      document.getElementById("modalProductTitle").textContent = product.name || "";
+      document.getElementById("modalProductBrand").textContent = product.brand || "";
+      document.getElementById("modalProductPrice").textContent = formatPrice(product.price);
+      document.getElementById("modalProductImg").src = product.image_url || "";
+      document.getElementById("modalProductImg").alt = product.name || "";
+      document.getElementById("modalDescription").textContent =
+        product.description || "Описание отсутствует";
+
+      const buyBtn = document.getElementById("modalBuyBtn");
+
+      if (product.quantity > 0) {
+        buyBtn.disabled = false;
+        buyBtn.textContent = "Добавить в корзину";
+      } else {
+        buyBtn.disabled = true;
+        buyBtn.textContent = "Нет в наличии";
+      }
+
+      buyBtn.onclick = () => addToCart(product, buyBtn);
+
+      productModal.show();
+    }
+
+    async function addToCart(product, button) {
+      try {
+        const response = await fetch(`${CART_API}/add`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            sku: product.sku,
+            name: product.name,
+            qty: 1,
+            price: product.price,
+            image_url: product.image_url
+          })
+        });
+
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(text);
+        }
+
+        showAddedState(button);
+        await loadCartInfo();
+      } catch (error) {
+        console.error("addToCart error:", error);
+        alert("Ошибка при добавлении в корзину: " + error.message);
+      }
+    }
+
+    function showAddedState(button) {
+      if (!button) return;
+
+      const oldText = button.textContent;
+
+      button.textContent = "Добавлено";
+      button.classList.remove("btn-danger", "btn-outline-danger");
+      button.classList.add("btn-success");
+
+      setTimeout(() => {
+        button.textContent = oldText;
+        button.classList.remove("btn-success");
+        if (button.id === "modalBuyBtn") {
+          button.classList.add("custom-buy-btn");
+        } else {
+          button.classList.add("btn-outline-danger");
+        }
+      }, 1200);
+    }
+
+    async function loadCartInfo() {
+      try {
+        const response = await fetch(`${CART_API}/cart`);
+        if (!response.ok) return;
+
+        const data = await response.json();
+        updateCartBadge(data.total_qty || 0);
+      } catch (error) {
+        console.error("loadCartInfo error:", error);
+      }
+    }
+
+    function updateCartBadge(count) {
+      if (count > 0) {
+        cartBadge.textContent = count;
+        cartBadge.style.display = "flex";
+      } else {
+        cartBadge.style.display = "none";
+      }
+    }
+
+    function formatPrice(value) {
+      return Number(value).toLocaleString("ru-RU") + " ₽";
+    }
+
+    function escapeHtml(str) {
+      return String(str || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      await loadProducts();
+      await loadCartInfo();
+    });
+  </script>
 </body>
 </html>
