@@ -1,0 +1,16 @@
+
+select * from orders
+delete from orders
+CREATE TABLE orders (
+    id BIGSERIAL PRIMARY KEY,
+    session_id VARCHAR(64) NOT NULL,
+    total_amount NUMERIC(12,2) NOT NULL CHECK (total_amount >= 0),
+    payment_status VARCHAR(20) NOT NULL DEFAULT 'paid',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_orders_session_id ON orders(session_id);
+INSERT INTO orders (session_id, total_amount)
+VALUES
+    ('marina-dev', 1553.00),
+    ('marina-dev', 2499.00);

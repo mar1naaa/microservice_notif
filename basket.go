@@ -51,6 +51,7 @@ func main() {
 	mux.HandleFunc("/api/add", addHandler)
 	mux.HandleFunc("/api/update", updateHandler)
 	mux.HandleFunc("/api/remove", removeHandler)
+	mux.HandleFunc("/api/clear", clearHandler)
 
 	fs := http.FileServer(http.Dir("static"))
 	mux.Handle("/", fs)
@@ -236,6 +237,24 @@ func removeHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	fmt.Fprintln(w, `{"status":"removed"}`)
+}
+
+func clearHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	_, err := pool.Exec(r.Context(), `
+		DELETE FROM cart_items
+		WHERE cart_id = $1
+	`, cartID)
+	if err != nil {
+		log.Println("update error:", err)
+		http.Error(w, "db error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	fmt.Fprintln(w, `{"status":"cleared"}`)
 }
 
 func withCORS(next http.Handler) http.Handler {

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BeautyShop | Мои заказы</title>
+
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root {
+      --primary-color: #e91e63;
+    }
+
+    body {
+      background-color: #f8f9fa;
+      font-family: Arial, sans-serif;
+      color: #222;
+    }
+
+    .navbar {
+      background: white;
+      border-bottom: 1px solid #e9ecef;
+    }
+
+    .logo {
+      font-weight: 700;
+      color: var(--primary-color) !important;
+      text-decoration: none;
+      font-size: 1.4rem;
+    }
+
+    .page-title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .back-link {
+      color: #6c757d;
+      text-decoration: none;
+    }
+
+    .back-link:hover {
+      color: var(--primary-color);
+    }
+
+    .orders-box,
+    .empty-box {
+      background: white;
+      border: 1px solid #e9ecef;
+      border-radius: 12px;
+      padding: 1rem;
+    }
+
+    .order-item {
+      padding: 1rem 0;
+      border-bottom: 1px solid #eeeeee;
+    }
+
+    .order-item:last-child {
+      border-bottom: none;
+    }
+
+    .order-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+    }
+
+    .order-row {
+      margin-bottom: 0.25rem;
+      color: #555;
+    }
+
+    .order-status {
+      display: inline-block;
+      padding: 0.3rem 0.65rem;
+      border-radius: 8px;
+      background: #d4edda;
+      color: #155724;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .empty-box {
+      text-align: center;
+      padding: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar py-3">
+    <div class="container">
+      <a class="logo" href="http://localhost:9000/main.html">BeautyShop</a>
+    </div>
+  </nav>
+
+  <div class="container py-4">
+    <div class="mb-4">
+      <h1 class="page-title">Мои заказы</h1>
+      <a href="http://localhost:9000/main.html" class="back-link">
+        ← Назад в каталог
+      </a>
+    </div>
+
+    <div id="ordersContainer"></div>
+  </div>
+
+  <script>
+    const API_URL = "http://localhost:9002/api";
+    const ordersContainer = document.getElementById("ordersContainer");
+
+    async function loadOrders() {
+      try {
+        const response = await fetch(`${API_URL}/orders`);
+        if (!response.ok) {
+          throw new Error("Не удалось загрузить заказы");
+        }
+
+        const orders = await response.json();
+        renderOrders(orders);
+      } catch (error) {
+        console.error(error);
+        ordersContainer.innerHTML = `
+          <div class="empty-box">
+            <h3>Ошибка загрузки</h3>
+            <p class="text-muted mb-0">Не удалось получить список заказов.</p>
+          </div>
+        `;
+      }
+    }
+
+    function renderOrders(orders) {
+      if (!orders.length) {
+        ordersContainer.innerHTML = `
+          <div class="empty-box">
+            <h3>Заказов пока нет</h3>
+            <p class="text-muted mb-0">После оформления они появятся здесь.</p>
+          </div>
+        `;
+        return;
+      }
+
+      ordersContainer.innerHTML = `
+        <div class="orders-box">
+          ${orders.map(order => `
+            <div class="order-item">
+              <div class="order-title">Заказ №${order.id}</div>
+              <div class="order-row">Сумма: ${formatPrice(order.total_amount)}</div>
+              <div class="order-row">
+                Статус оплаты:
+                <span class="order-status">${escapeHtml(order.payment_status)}</span>
+              </div>
+              <div class="order-row">
+                Дата: ${formatDate(order.created_at)}
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function formatPrice(value) {
+      return Number(value || 0).toLocaleString("ru-RU") + " ₽";
+    }
+
+    function formatDate(value) {
+      const date = new Date(value);
+      return date.toLocaleString("ru-RU");
+    }
+
+    function escapeHtml(str) {
+      return String(str || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    document.addEventListener("DOMContentLoaded", loadOrders);
+  </script>
+</body>
+</html>
