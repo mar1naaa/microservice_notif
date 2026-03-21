@@ -272,6 +272,14 @@
   <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
     <div class="container">
       <a class="navbar-brand logo" href="main.html">BeautyShop</a>
+<a
+  id="journalLink"
+  class="nav-link fw-semibold"
+  href="http://localhost:9004/journal.html"
+  style="display: none;"
+>
+  Журнал
+</a>
 
       <div class="ms-auto d-flex align-items-center gap-4">
         <a class="nav-link fw-semibold" href="http://localhost:9002/orders.html" >
@@ -337,197 +345,245 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const PRODUCTS_API = "/api/products";
+  const CART_API = "http://localhost:9001/api";
 
-  <script>
-    const PRODUCTS_API = "/api/products";
-    const CART_API = "http://localhost:9001/api";
+  const productModal = new bootstrap.Modal(document.getElementById("productModal"));
+  const catalogWrap = document.getElementById("catalogWrap");
+  const cartBadge = document.getElementById("cartBadgeNav");
+  const journalLink = document.getElementById("journalLink");
 
-    const productModal = new bootstrap.Modal(document.getElementById("productModal"));
-    const catalogWrap = document.getElementById("catalogWrap");
-    const cartBadge = document.getElementById("cartBadgeNav");
+  function syncAuthFromUrl() {
+    const params = new URLSearchParams(window.location.search);
 
-    async function loadProducts() {
-      try {
-        const response = await fetch(PRODUCTS_API);
-        if (!response.ok) throw new Error("Не удалось загрузить товары");
+    const token = params.get("token");
+    const id = params.get("id");
+    const name = params.get("name");
+    const email = params.get("email");
+    const role = params.get("role");
 
-        const products = await response.json();
-        renderProducts(products);
-      } catch (error) {
-        console.error(error);
-        catalogWrap.innerHTML = `
-          <div class="error-box">
-            <h3 class="mb-2">Ошибка загрузки</h3>
-            <p class="text-muted mb-0">Не удалось получить список товаров.</p>
-          </div>
-        `;
-      }
+    if (!token) return;
+
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify({
+      id: id ? Number(id) : null,
+      name: name || "",
+      email: email || "",
+      role: role || ""
+    }));
+
+    const cleanUrl = window.location.origin + window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
+  }
+
+  function updateAdminNav() {
+    if (!journalLink) return;
+
+    const rawUser = localStorage.getItem("user");
+    if (!rawUser) {
+      journalLink.style.display = "none";
+      return;
     }
 
-    function renderProducts(items) {
-      if (!items.length) {
-        catalogWrap.innerHTML = `
-          <div class="empty-box">
-            <h3 class="mb-2">Товаров пока нет</h3>
-            <p class="text-muted mb-0">Каталог пуст.</p>
-          </div>
-        `;
-        return;
+    try {
+      const user = JSON.parse(rawUser);
+
+      if (user.role && user.role.toLowerCase() === "admin") {
+        journalLink.style.display = "block";
+      } else {
+        journalLink.style.display = "none";
       }
+    } catch (error) {
+      journalLink.style.display = "none";
+    }
+  }
 
-      const row = document.createElement("div");
-      row.className = "row g-4 mb-5 justify-content-center";
-      row.id = "catalog";
+  async function loadProducts() {
+    try {
+      const response = await fetch(PRODUCTS_API);
+      if (!response.ok) throw new Error("Не удалось загрузить товары");
 
-      items.forEach(product => {
-        const col = document.createElement("div");
-        col.className = "col-lg-3 col-md-6 col-sm-6";
+      const products = await response.json();
+      renderProducts(products);
+    } catch (error) {
+      console.error(error);
+      catalogWrap.innerHTML = `
+        <div class="error-box">
+          <h3 class="mb-2">Ошибка загрузки</h3>
+          <p class="text-muted mb-0">Не удалось получить список товаров.</p>
+        </div>
+      `;
+    }
+  }
 
-        const disabled = product.quantity > 0 ? "" : "disabled";
-        const buttonText = product.quantity > 0 ? "В корзину" : "Нет в наличии";
+  function renderProducts(items) {
+    if (!items.length) {
+      catalogWrap.innerHTML = `
+        <div class="empty-box">
+          <h3 class="mb-2">Товаров пока нет</h3>
+          <p class="text-muted mb-0">Каталог пуст.</p>
+        </div>
+      `;
+      return;
+    }
 
-        col.innerHTML = `
-          <div class="card product-card h-100">
-            <img src="${escapeHtml(product.image_url)}" alt="${escapeHtml(product.name)}" class="card-img-top product-img">
-            <div class="card-body">
-              <div class="product-brand">${escapeHtml(product.brand)}</div>
-              <div class="product-title mb-3">${escapeHtml(product.name)}</div>
-              <div class="product-price mb-3">${formatPrice(product.price)}</div>
-              <button class="btn btn-outline-danger w-100 simple-cart-btn" ${disabled}>
-                ${buttonText}
-              </button>
-            </div>
+    const row = document.createElement("div");
+    row.className = "row g-4 mb-5 justify-content-center";
+    row.id = "catalog";
+
+    items.forEach(product => {
+      const col = document.createElement("div");
+      col.className = "col-lg-3 col-md-6 col-sm-6";
+
+      const disabled = product.quantity > 0 ? "" : "disabled";
+      const buttonText = product.quantity > 0 ? "В корзину" : "Нет в наличии";
+
+      col.innerHTML = `
+        <div class="card product-card h-100">
+          <img src="${escapeHtml(product.image_url)}" alt="${escapeHtml(product.name)}" class="card-img-top product-img">
+          <div class="card-body">
+            <div class="product-brand">${escapeHtml(product.brand)}</div>
+            <div class="product-title mb-3">${escapeHtml(product.name)}</div>
+            <div class="product-price mb-3">${formatPrice(product.price)}</div>
+            <button class="btn btn-outline-danger w-100 simple-cart-btn" ${disabled}>
+              ${buttonText}
+            </button>
           </div>
-        `;
+        </div>
+      `;
 
-        const card = col.querySelector(".product-card");
-        const addBtn = col.querySelector(".simple-cart-btn");
+      const card = col.querySelector(".product-card");
+      const addBtn = col.querySelector(".simple-cart-btn");
 
-        card.addEventListener("click", () => openProduct(product));
+      card.addEventListener("click", () => openProduct(product));
 
-        addBtn.addEventListener("click", (event) => {
-          event.stopPropagation();
-          addToCart(product, addBtn);
-        });
-
-        row.appendChild(col);
+      addBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        addToCart(product, addBtn);
       });
 
-      catalogWrap.innerHTML = "";
-      catalogWrap.appendChild(row);
-    }
-
-    function openProduct(product) {
-      document.getElementById("modalProductTitle").textContent = product.name || "";
-      document.getElementById("modalProductBrand").textContent = product.brand || "";
-      document.getElementById("modalProductPrice").textContent = formatPrice(product.price);
-      document.getElementById("modalProductImg").src = product.image_url || "";
-      document.getElementById("modalProductImg").alt = product.name || "";
-      document.getElementById("modalDescription").textContent =
-        product.description || "Описание отсутствует";
-
-      const buyBtn = document.getElementById("modalBuyBtn");
-
-      if (product.quantity > 0) {
-        buyBtn.disabled = false;
-        buyBtn.textContent = "Добавить в корзину";
-      } else {
-        buyBtn.disabled = true;
-        buyBtn.textContent = "Нет в наличии";
-      }
-
-      buyBtn.onclick = () => addToCart(product, buyBtn);
-
-      productModal.show();
-    }
-
-    async function addToCart(product, button) {
-      try {
-        const response = await fetch(`${CART_API}/add`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            sku: product.sku,
-            name: product.name,
-            qty: 1,
-            price: product.price,
-            image_url: product.image_url
-          })
-        });
-
-        if (!response.ok) {
-          const text = await response.text();
-          throw new Error(text);
-        }
-
-        showAddedState(button);
-        await loadCartInfo();
-      } catch (error) {
-        console.error("addToCart error:", error);
-        alert("Ошибка при добавлении в корзину: " + error.message);
-      }
-    }
-
-    function showAddedState(button) {
-      if (!button) return;
-
-      const oldText = button.textContent;
-
-      button.textContent = "Добавлено";
-      button.classList.remove("btn-danger", "btn-outline-danger");
-      button.classList.add("btn-success");
-
-      setTimeout(() => {
-        button.textContent = oldText;
-        button.classList.remove("btn-success");
-        if (button.id === "modalBuyBtn") {
-          button.classList.add("custom-buy-btn");
-        } else {
-          button.classList.add("btn-outline-danger");
-        }
-      }, 1200);
-    }
-
-    async function loadCartInfo() {
-      try {
-        const response = await fetch(`${CART_API}/cart`);
-        if (!response.ok) return;
-
-        const data = await response.json();
-        updateCartBadge(data.total_qty || 0);
-      } catch (error) {
-        console.error("loadCartInfo error:", error);
-      }
-    }
-
-    function updateCartBadge(count) {
-      if (count > 0) {
-        cartBadge.textContent = count;
-        cartBadge.style.display = "flex";
-      } else {
-        cartBadge.style.display = "none";
-      }
-    }
-
-    function formatPrice(value) {
-      return Number(value).toLocaleString("ru-RU") + " ₽";
-    }
-
-    function escapeHtml(str) {
-      return String(str || "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#39;");
-    }
-
-    document.addEventListener("DOMContentLoaded", async () => {
-      await loadProducts();
-      await loadCartInfo();
+      row.appendChild(col);
     });
-  </script>
+
+    catalogWrap.innerHTML = "";
+    catalogWrap.appendChild(row);
+  }
+
+  function openProduct(product) {
+    document.getElementById("modalProductTitle").textContent = product.name || "";
+    document.getElementById("modalProductBrand").textContent = product.brand || "";
+    document.getElementById("modalProductPrice").textContent = formatPrice(product.price);
+    document.getElementById("modalProductImg").src = product.image_url || "";
+    document.getElementById("modalProductImg").alt = product.name || "";
+    document.getElementById("modalDescription").textContent =
+      product.description || "Описание отсутствует";
+
+    const buyBtn = document.getElementById("modalBuyBtn");
+
+    if (product.quantity > 0) {
+      buyBtn.disabled = false;
+      buyBtn.textContent = "Добавить в корзину";
+    } else {
+      buyBtn.disabled = true;
+      buyBtn.textContent = "Нет в наличии";
+    }
+
+    buyBtn.onclick = () => addToCart(product, buyBtn);
+
+    productModal.show();
+  }
+
+  async function addToCart(product, button) {
+    try {
+      const response = await fetch(`${CART_API}/add`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          sku: product.sku,
+          name: product.name,
+          qty: 1,
+          price: product.price,
+          image_url: product.image_url
+        })
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text);
+      }
+
+      showAddedState(button);
+      await loadCartInfo();
+    } catch (error) {
+      console.error("addToCart error:", error);
+      alert("Ошибка при добавлении в корзину: " + error.message);
+    }
+  }
+
+  function showAddedState(button) {
+    if (!button) return;
+
+    const oldText = button.textContent;
+
+    button.textContent = "Добавлено";
+    button.classList.remove("btn-danger", "btn-outline-danger");
+    button.classList.add("btn-success");
+
+    setTimeout(() => {
+      button.textContent = oldText;
+      button.classList.remove("btn-success");
+      if (button.id === "modalBuyBtn") {
+        button.classList.add("custom-buy-btn");
+      } else {
+        button.classList.add("btn-outline-danger");
+      }
+    }, 1200);
+  }
+
+  async function loadCartInfo() {
+    try {
+      const response = await fetch(`${CART_API}/cart`);
+      if (!response.ok) return;
+
+      const data = await response.json();
+      updateCartBadge(data.total_qty || 0);
+    } catch (error) {
+      console.error("loadCartInfo error:", error);
+    }
+  }
+
+  function updateCartBadge(count) {
+    if (count > 0) {
+      cartBadge.textContent = count;
+      cartBadge.style.display = "flex";
+    } else {
+      cartBadge.style.display = "none";
+    }
+  }
+
+  function formatPrice(value) {
+    return Number(value).toLocaleString("ru-RU") + " ₽";
+  }
+
+  function escapeHtml(str) {
+    return String(str || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    syncAuthFromUrl();
+    updateAdminNav();
+    await loadProducts();
+    await loadCartInfo();
+  });
+</script>
+
 </body>
 </html>

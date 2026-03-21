@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BeautyShop | Авторизация</title>
+
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root {
+      --primary-color: #e91e63;
+      --gradient: linear-gradient(135deg, #e91e63, #9c27b0);
+    }
+
+    body {
+      background-color: #fafafa;
+      font-family: system-ui, sans-serif;
+      min-height: 100vh;
+    }
+
+    .navbar {
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .logo {
+      font-weight: 700;
+      color: var(--primary-color) !important;
+      font-size: 1.5rem;
+      text-decoration: none;
+    }
+
+    .auth-hero {
+      padding: 60px 0 24px;
+      text-align: center;
+    }
+
+    .auth-title {
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 700;
+      font-size: 2.4rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .auth-subtitle {
+      color: #6c757d;
+      font-size: 1rem;
+      margin-bottom: 0;
+    }
+
+    .auth-card {
+      transition: all 0.3s ease;
+      border: none;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+      border-radius: 20px;
+      background: white;
+      height: 100%;
+    }
+
+    .auth-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 20px 40px rgba(233, 30, 99, 0.12);
+    }
+
+    .auth-card .card-body {
+      padding: 2rem;
+    }
+
+    .section-title {
+      color: #222;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+      font-size: 1.35rem;
+    }
+
+    .form-control {
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      border: 1px solid #e5e7eb;
+    }
+
+    .form-control:focus {
+      border-color: rgba(233, 30, 99, 0.5);
+      box-shadow: 0 0 0 0.2rem rgba(233, 30, 99, 0.12);
+    }
+
+    .auth-btn {
+      border-radius: 12px;
+      font-weight: 600;
+      padding: 0.85rem 1rem;
+      background: var(--gradient);
+      border: none;
+      color: white;
+    }
+
+    .auth-btn:hover {
+      opacity: 0.95;
+      color: white;
+    }
+
+    .soft-btn {
+      border-radius: 12px;
+      font-weight: 600;
+      padding: 0.85rem 1rem;
+    }
+
+    .profile-box {
+      background: #fff;
+      border: 1px solid #f1d6e4;
+      border-radius: 16px;
+      padding: 1rem;
+      color: #555;
+      min-height: 120px;
+    }
+
+    .status-text {
+      min-height: 24px;
+      font-size: 0.95rem;
+      margin-top: 0.75rem;
+    }
+
+    .muted-note {
+      font-size: 0.9rem;
+      color: #6c757d;
+    }
+
+    @media (max-width: 991px) {
+      .auth-title {
+        font-size: 2rem;
+      }
+
+      .auth-card .card-body {
+        padding: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-light bg-white sticky-top">
+    <div class="container">
+      <a class="navbar-brand logo" href="http://localhost:9000/main.html">BeautyShop</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="auth-hero">
+      <h1 class="auth-title">Личный кабинет</h1>
+      <p class="auth-subtitle">Зарегистрируйтесь или войдите в аккаунт</p>
+    </div>
+
+    <div class="row g-4 justify-content-center pb-5">
+      <div class="col-lg-5 col-md-6">
+        <div class="card auth-card">
+          <div class="card-body">
+            <h2 class="section-title">Регистрация</h2>
+
+            <form id="registerForm">
+              <div class="mb-3">
+                <input
+                  type="text"
+                  class="form-control"
+                  id="regName"
+                  placeholder="Имя"
+                  required
+                />
+              </div>
+
+              <div class="mb-3">
+                <input
+                  type="email"
+                  class="form-control"
+                  id="regEmail"
+                  placeholder="Email"
+                  required
+                />
+              </div>
+
+              <div class="mb-3">
+                <input
+                  type="password"
+                  class="form-control"
+                  id="regPassword"
+                  placeholder="Пароль"
+                  required
+                />
+              </div>
+
+              <button type="submit" class="btn auth-btn w-100">
+                Зарегистрироваться
+              </button>
+            </form>
+
+            <div id="registerStatus" class="status-text text-muted"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-5 col-md-6">
+        <div class="card auth-card">
+          <div class="card-body">
+            <h2 class="section-title">Авторизация</h2>
+
+            <form id="loginForm">
+              <div class="mb-3">
+                <input
+                  type="email"
+                  class="form-control"
+                  id="loginEmail"
+                  placeholder="Email"
+                  required
+                />
+              </div>
+
+              <div class="mb-3">
+                <input
+                  type="password"
+                  class="form-control"
+                  id="loginPassword"
+                  placeholder="Пароль"
+                  required
+                />
+              </div>
+
+              <button type="submit" class="btn auth-btn w-100">
+                Войти
+              </button>
+            </form>
+
+            <div id="loginStatus" class="status-text text-muted"></div>
+
+            <div class="profile-box mt-3" id="profileBox">
+              Пользователь не авторизован
+            </div>
+
+            <div class="d-flex gap-2 mt-3 flex-wrap">
+              <button type="button" class="btn btn-outline-secondary soft-btn flex-fill" id="meBtn">
+                Мой профиль
+              </button>
+              <button type="button" class="btn btn-outline-danger soft-btn flex-fill" id="logoutBtn">
+                Выйти
+              </button>
+            </div>
+
+            <p class="muted-note mt-3 mb-0">
+              После входа произойдёт автоматический переход в каталог.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  const API = "http://localhost:9003";
+
+  const registerForm = document.getElementById("registerForm");
+  const loginForm = document.getElementById("loginForm");
+  const registerStatus = document.getElementById("registerStatus");
+  const loginStatus = document.getElementById("loginStatus");
+  const profileBox = document.getElementById("profileBox");
+  const meBtn = document.getElementById("meBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+
+  function setStatus(element, message, type = "muted") {
+    element.className = `status-text text-${type}`;
+    element.textContent = message;
+  }
+
+  function saveAuth(data) {
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
+  }
+
+  function clearAuth() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+  }
+
+  function getToken() {
+    return localStorage.getItem("token");
+  }
+
+  function getUser() {
+    const raw = localStorage.getItem("user");
+    return raw ? JSON.parse(raw) : null;
+  }
+
+  function renderUser() {
+    const user = getUser();
+
+    if (!user) {
+      profileBox.textContent = "Пользователь не авторизован";
+      return;
+    }
+
+    profileBox.innerHTML = `
+      <div><strong>Имя:</strong> ${user.name}</div>
+      <div><strong>Email:</strong> ${user.email}</div>
+      <div><strong>Роль:</strong> ${user.role}</div>
+    `;
+  }
+
+  registerForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    setStatus(registerStatus, "");
+
+    const body = {
+      name: document.getElementById("regName").value.trim(),
+      email: document.getElementById("regEmail").value.trim(),
+      password: document.getElementById("regPassword").value.trim()
+    };
+
+    try {
+      const res = await fetch(`${API}/api/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
+
+      const text = await res.text();
+
+      if (!res.ok) {
+        throw new Error(text || "Ошибка регистрации");
+      }
+
+      setStatus(registerStatus, "Регистрация успешна", "success");
+      registerForm.reset();
+    } catch (error) {
+      setStatus(registerStatus, error.message, "danger");
+    }
+  });
+
+  loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    setStatus(loginStatus, "");
+
+    const body = {
+      email: document.getElementById("loginEmail").value.trim(),
+      password: document.getElementById("loginPassword").value.trim()
+    };
+
+    try {
+      const res = await fetch(`${API}/api/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data) {
+        throw new Error("Неверный email или пароль");
+      }
+
+      saveAuth(data);
+
+      const params = new URLSearchParams({
+        token: data.token || "",
+        id: String(data.user?.id || ""),
+        name: data.user?.name || "",
+        email: data.user?.email || "",
+        role: data.user?.role || ""
+      });
+
+      setStatus(loginStatus, "Вход выполнен", "success");
+      loginForm.reset();
+
+      setTimeout(() => {
+        window.location.href = `http://localhost:9000/main.html?${params.toString()}`;
+      }, 300);
+    } catch (error) {
+      setStatus(loginStatus, error.message, "danger");
+    }
+  });
+
+  meBtn.addEventListener("click", async () => {
+    const token = getToken();
+
+    if (!token) {
+      setStatus(loginStatus, "Сначала войдите", "warning");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API}/api/me`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data) {
+        throw new Error("Токен недействителен");
+      }
+
+      localStorage.setItem("user", JSON.stringify(data));
+      renderUser();
+      setStatus(loginStatus, "Профиль загружен", "success");
+    } catch (error) {
+      clearAuth();
+      renderUser();
+      setStatus(loginStatus, error.message, "danger");
+    }
+  });
+
+  logoutBtn.addEventListener("click", () => {
+    clearAuth();
+    renderUser();
+    setStatus(loginStatus, "Вы вышли из аккаунта", "secondary");
+  });
+
+  renderUser();
+  </script>
+</body>
+</html>
