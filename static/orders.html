@@ -49,7 +49,8 @@
     }
 
     .orders-box,
-    .empty-box {
+    .empty-box,
+    .auth-box {
       background: white;
       border: 1px solid #e9ecef;
       border-radius: 12px;
@@ -86,7 +87,18 @@
       font-weight: 700;
     }
 
-    .empty-box {
+    .order-status.pending {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .order-status.default-status {
+      background: #e2e3e5;
+      color: #41464b;
+    }
+
+    .empty-box,
+    .auth-box {
       text-align: center;
       padding: 2rem;
     }
@@ -94,16 +106,24 @@
 </head>
 <body>
   <nav class="navbar py-3">
-    <div class="container">
-      <a class="logo" href="http://localhost:9000/main.html">BeautyShop</a>
+    <div class="container d-flex justify-content-between align-items-center flex-wrap gap-3">
+      <a class="logo" href="javascript:void(0);" onclick="return openMainPage(event)">BeautyShop</a>
     </div>
   </nav>
 
   <div class="container py-4">
     <div class="mb-4">
       <h1 class="page-title">Мои заказы</h1>
-      <a href="http://localhost:9000/main.html" class="back-link">
+      <a href="javascript:void(0);" class="back-link" onclick="return openMainPage(event)">
         ← Назад в каталог
+      </a>
+    </div>
+
+    <div id="authBox" class="auth-box d-none">
+      <h3>Нужна авторизация</h3>
+      <p class="text-muted mb-3">Чтобы увидеть историю заказов, сначала войдите в аккаунт.</p>
+      <a href="http://localhost:9003/auth.html" class="btn btn-danger">
+        Войти
       </a>
     </div>
 
@@ -113,10 +133,118 @@
   <script>
     const API_URL = "http://localhost:9002/api";
     const ordersContainer = document.getElementById("ordersContainer");
+    const authBox = document.getElementById("authBox");
+
+    function getToken() {
+      return localStorage.getItem("token");
+    }
+
+    function getUser() {
+      const raw = localStorage.getItem("user");
+      if (!raw) return null;
+
+      try {
+        return JSON.parse(raw);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function getAuthHeaders(includeJson = false) {
+      const token = getToken();
+      const headers = {};
+
+      if (includeJson) {
+        headers["Content-Type"] = "application/json";
+      }
+
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      return headers;
+    }
+
+    function syncAuthFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+
+      const token = params.get("token");
+      const id = params.get("id");
+      const name = params.get("name");
+      const email = params.get("email");
+      const role = params.get("role");
+
+      if (!token) return;
+
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify({
+        id: id ? Number(id) : null,
+        name: name || "",
+        email: email || "",
+        role: role || ""
+      }));
+
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+
+    function buildCrossServiceUrl(baseUrl) {
+      const token = getToken();
+      const user = getUser();
+
+      if (!token || !user) {
+        return "http://localhost:9003/auth.html";
+      }
+
+      const params = new URLSearchParams({
+        token: token,
+        id: String(user.id || ""),
+        name: user.name || "",
+        email: user.email || "",
+        role: user.role || ""
+      });
+
+      return `${baseUrl}?${params.toString()}`;
+    }
+
+    function openMainPage(event) {
+      if (event) event.preventDefault();
+      window.location.href = buildCrossServiceUrl("http://localhost:9000/main.html");
+      return false;
+    }
+
+    function openBasketPage(event) {
+      if (event) event.preventDefault();
+      window.location.href = buildCrossServiceUrl("http://localhost:9001/basket.html");
+      return false;
+    }
+
+    function showAuthRequired() {
+      authBox.classList.remove("d-none");
+      ordersContainer.innerHTML = "";
+    }
 
     async function loadOrders() {
+      const token = getToken();
+
+      if (!token) {
+        showAuthRequired();
+        return;
+      }
+
       try {
-        const response = await fetch(`${API_URL}/orders`);
+        const response = await fetch(`${API_URL}/orders`, {
+          method: "GET",
+          headers: getAuthHeaders()
+        });
+
+        if (response.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          showAuthRequired();
+          return;
+        }
+
         if (!response.ok) {
           throw new Error("Не удалось загрузить заказы");
         }
@@ -135,7 +263,7 @@
     }
 
     function renderOrders(orders) {
-      if (!orders.length) {
+      if (!Array.isArray(orders) || !orders.length) {
         ordersContainer.innerHTML = `
           <div class="empty-box">
             <h3>Заказов пока нет</h3>
@@ -149,11 +277,13 @@
         <div class="orders-box">
           ${orders.map(order => `
             <div class="order-item">
-              <div class="order-title">Заказ №${order.id}</div>
+              <div class="order-title">Заказ №${order.user_order_number}</div>
               <div class="order-row">Сумма: ${formatPrice(order.total_amount)}</div>
               <div class="order-row">
                 Статус оплаты:
-                <span class="order-status">${escapeHtml(order.payment_status)}</span>
+                <span class="order-status ${statusClass(order.payment_status)}">
+                  ${statusText(order.payment_status)}
+                </span>
               </div>
               <div class="order-row">
                 Дата: ${formatDate(order.created_at)}
@@ -162,6 +292,22 @@
           `).join("")}
         </div>
       `;
+    }
+
+    function statusText(status) {
+      const normalized = String(status || "").toLowerCase();
+
+      if (normalized === "pending") return "В ожидании";
+      if (normalized === "paid") return "Оплачен";
+      return escapeHtml(status || "Неизвестно");
+    }
+
+    function statusClass(status) {
+      const normalized = String(status || "").toLowerCase();
+
+      if (normalized === "pending") return "pending";
+      if (normalized === "paid") return "";
+      return "default-status";
     }
 
     function formatPrice(value) {
@@ -182,7 +328,10 @@
         .replaceAll("'", "&#39;");
     }
 
-    document.addEventListener("DOMContentLoaded", loadOrders);
+    document.addEventListener("DOMContentLoaded", async () => {
+      syncAuthFromUrl();
+      await loadOrders();
+    });
   </script>
 </body>
 </html>

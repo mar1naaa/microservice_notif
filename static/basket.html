@@ -3,419 +3,386 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Корзина</title>
-
+  <title>Корзина | BeautyShop</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
   <link
     href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
     rel="stylesheet"
-  />
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
-    rel="stylesheet"
-  />
-
+  >
   <style>
-    :root {
-      --primary-color: #e91e63;
-    }
-
     body {
-      background-color: #f8f9fa;
-      font-family: Arial, sans-serif;
-      color: #222;
+      font-family: "Montserrat", sans-serif;
+      background: linear-gradient(135deg, #fff8fa, #ffeef4);
+      color: #3c2530;
+      min-height: 100vh;
     }
 
     .navbar {
-      background: white;
-      border-bottom: 1px solid #e9ecef;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 8px 30px rgba(190, 98, 129, 0.08);
     }
 
     .logo {
+      font-size: 1.7rem;
       font-weight: 700;
-      color: var(--primary-color) !important;
+      color: #d63384 !important;
+      letter-spacing: 0.04em;
       text-decoration: none;
-      font-size: 1.4rem;
     }
 
     .page-title {
-      font-size: 2rem;
+      font-size: 2.2rem;
       font-weight: 700;
-      margin-bottom: 0.5rem;
+      color: #c22573;
+      margin-bottom: 8px;
+    }
+
+    .page-subtitle {
+      color: #7a5b67;
+      margin-bottom: 0;
     }
 
     .back-link {
-      color: #6c757d;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #000000;
+      font-weight: 600;
       text-decoration: none;
     }
 
     .back-link:hover {
-      color: var(--primary-color);
+      color: #b8246e;
     }
 
-    .cart-box,
-    .summary-box,
-    .empty-box {
-      background: white;
-      border: 1px solid #e9ecef;
-      border-radius: 12px;
-      padding: 1rem;
+    .card-box {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 24px;
+      box-shadow: 0 14px 40px rgba(210, 124, 154, 0.12);
+      border: none;
     }
 
     .cart-item {
-      display: flex;
-      gap: 1rem;
+      display: grid;
+      grid-template-columns: 110px 1fr auto;
+      gap: 18px;
       align-items: center;
-      padding: 1rem 0;
-      border-bottom: 1px solid #eeeeee;
+      padding: 18px 0;
+      border-bottom: 1px solid rgba(212, 128, 157, 0.15);
     }
 
     .cart-item:last-child {
       border-bottom: none;
     }
 
-    .cart-item-image {
-      width: 80px;
-      height: 80px;
+    .item-image {
+      width: 110px;
+      height: 110px;
       object-fit: cover;
-      border-radius: 8px;
-      background: #f1f1f1;
-      border: 1px solid #eee;
-      flex-shrink: 0;
+      border-radius: 18px;
+      background: #fff;
     }
 
-    .cart-item-info {
-      flex: 1;
+    .item-name {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #4a2d38;
+      margin-bottom: 8px;
     }
 
-    .cart-item-title {
-      font-size: 1rem;
-      font-weight: 700;
-      margin-bottom: 0.25rem;
+    .item-meta {
+      color: #7c5f69;
+      font-size: 0.95rem;
+      margin-bottom: 10px;
     }
 
-    .cart-item-meta {
-      font-size: 0.9rem;
-      color: #6c757d;
-      margin-bottom: 0.25rem;
-    }
-
-    .cart-item-price {
-      color: var(--primary-color);
-      font-weight: 700;
-    }
-
-    .qty-controls {
-      display: flex;
+    .qty-box {
+      display: inline-flex;
       align-items: center;
-      gap: 0.5rem;
-      margin-top: 0.5rem;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(214, 51, 132, 0.2);
+      background: #fff;
     }
 
-    .qty-controls button {
-      width: 32px;
-      height: 32px;
-      border: 1px solid #ced4da;
-      background: white;
-      border-radius: 6px;
+    .qty-btn {
+      border: none;
+      background: transparent;
+      width: 38px;
+      height: 38px;
+      font-weight: 700;
+      color: #d63384;
+    }
+
+    .qty-btn:hover {
+      background: #fff0f6;
     }
 
     .qty-value {
-      min-width: 24px;
+      width: 42px;
       text-align: center;
-      font-weight: 700;
+      font-weight: 600;
+      color: #4a2d38;
     }
 
-    .cart-item-right {
-      min-width: 110px;
+    .item-right {
       text-align: right;
+      min-width: 150px;
     }
 
-    .cart-item-sum {
+    .item-sum {
+      font-size: 1.08rem;
       font-weight: 700;
-      margin-bottom: 0.5rem;
+      color: #c22573;
+      margin-bottom: 10px;
     }
 
     .remove-btn {
       border: none;
-      background: none;
-      color: #dc3545;
-      font-size: 0.9rem;
-      padding: 0;
+      background: transparent;
+      color: #a15b74;
+      font-weight: 600;
     }
 
-    .summary-title {
-      font-size: 1.25rem;
-      font-weight: 700;
-      margin-bottom: 1rem;
+    .remove-btn:hover {
+      color: #d63384;
     }
 
-    .summary-row,
-    .summary-total {
+    .summary-row {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 0.75rem;
+      align-items: center;
+      margin-bottom: 14px;
+      color: #5f404d;
     }
 
-    .summary-total {
-      border-top: 1px solid #eee;
-      padding-top: 0.75rem;
-      margin-top: 0.75rem;
-      font-weight: 700;
+    .summary-row strong {
+      color: #3f2530;
+    }
+
+    .total-row {
       font-size: 1.1rem;
-    }
-
-    .checkout-btn {
-      width: 100%;
-      padding: 0.95rem 1rem;
-      border: none;
-      border-radius: 8px;
-      background: #dc3545;
-      color: white;
       font-weight: 700;
-      margin-top: 1rem;
+      color: #c22573;
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(212, 128, 157, 0.18);
     }
 
-    .checkout-btn:hover {
-      background: #c82333;
+    .action-btn {
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-weight: 600;
     }
 
-    .checkout-btn:disabled {
-      background: #bdbdbd;
-      cursor: not-allowed;
+    .btn-main {
+      background: linear-gradient(135deg, #ff5ca8, #d63384);
+      color: #fff;
+      border: none;
     }
 
-    .empty-box {
+    .btn-main:hover {
+      background: linear-gradient(135deg, #f14f9c, #be2f74);
+      color: #fff;
+    }
+
+    .empty-box,
+    .auth-box {
       text-align: center;
-      padding: 2rem;
+      padding: 40px 20px;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 10px 28px rgba(180, 100, 133, 0.1);
     }
 
     @media (max-width: 768px) {
       .cart-item {
-        flex-direction: column;
-        align-items: flex-start;
+        grid-template-columns: 1fr;
+        text-align: center;
       }
 
-      .cart-item-right {
-        text-align: left;
-        min-width: auto;
+      .item-image {
+        margin: 0 auto;
+      }
+
+      .item-right {
+        text-align: center;
       }
     }
   </style>
 </head>
 <body>
   <nav class="navbar py-3">
-    <div class="container">
-      <a class="logo" href="http://localhost:9000/main.html">BeautyShop</a>
+    <div class="container d-flex justify-content-between align-items-center flex-wrap gap-3">
+      <a class="logo" href="javascript:void(0);" onclick="return openMainPage(event)">BeautyShop</a>
+
+      <div class="d-flex align-items-center gap-3 flex-wrap">
+        <a class="back-link" href="javascript:void(0);" onclick="return openMainPage(event)">
+          Назад в каталог
+        </a>
+      </div>
     </div>
   </nav>
 
-  <div class="container py-4">
+  <main class="container py-5">
     <div class="mb-4">
       <h1 class="page-title">Корзина</h1>
-      <a href="http://localhost:9000/main.html" class="back-link">
-        <i class="bi bi-arrow-left"></i> Назад в каталог
+    </div>
+
+    <div id="authRequired" class="auth-box d-none">
+      <h3 class="mb-3">Нужна авторизация</h3>
+      <p class="text-muted mb-4">Чтобы открыть корзину, сначала войдите в аккаунт.</p>
+      <a href="http://localhost:9003/auth.html" class="btn btn-main action-btn">
+        Войти
       </a>
     </div>
 
-    <div class="row g-4">
+    <div id="basketContent" class="row g-4 d-none">
       <div class="col-lg-8">
-        <div id="cartContainer"></div>
+        <div class="card-box p-4">
+          <div id="cartItemsWrap"></div>
+        </div>
       </div>
 
       <div class="col-lg-4">
-        <div class="summary-box">
-          <div class="summary-title">Итог</div>
+        <div class="card-box p-4">
+          <h4 class="mb-4">Итог</h4>
 
           <div class="summary-row">
             <span>Количество товаров</span>
-            <span id="totalQty">0</span>
+            <strong id="totalQty">0</strong>
           </div>
 
           <div class="summary-row">
             <span>Сумма</span>
-            <span id="totalPrice">0 ₽</span>
+            <strong id="totalPrice">0 ₽</strong>
           </div>
 
-          <div class="summary-total">
+          <div class="summary-row total-row">
             <span>К оплате</span>
-            <span id="finalPrice">0 ₽</span>
+            <strong id="payPrice">0 ₽</strong>
           </div>
 
-          <button id="checkoutBtn" class="checkout-btn">Оформить заказ</button>
+          <div class="d-grid gap-2 mt-4">
+            <button id="orderBtn" class="btn btn-main action-btn">
+              Оформить заказ
+            </button>
+            <button id="clearBtn" class="btn btn-outline-secondary action-btn">
+              Очистить корзину
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  </main>
 
   <script>
-    const API_URL = "http://localhost:9001/api";
-    const ORDER_API_URL = "http://localhost:9002/api";
+    const CART_API = "http://localhost:9001/api";
+    const ORDERS_API = "http://localhost:9002/api/orders";
 
-    const cartContainer = document.getElementById("cartContainer");
+    const authRequired = document.getElementById("authRequired");
+    const basketContent = document.getElementById("basketContent");
+    const cartItemsWrap = document.getElementById("cartItemsWrap");
     const totalQtyEl = document.getElementById("totalQty");
     const totalPriceEl = document.getElementById("totalPrice");
-    const finalPriceEl = document.getElementById("finalPrice");
-    const checkoutBtn = document.getElementById("checkoutBtn");
+    const payPriceEl = document.getElementById("payPrice");
+    const clearBtn = document.getElementById("clearBtn");
+    const orderBtn = document.getElementById("orderBtn");
 
-    let currentTotalPrice = 0;
+    let currentCart = {
+      items: [],
+      total_qty: 0,
+      total_price: 0
+    };
 
-    async function loadCart() {
+    function getToken() {
+      return localStorage.getItem("token");
+    }
+
+    function getUser() {
+      const raw = localStorage.getItem("user");
+      if (!raw) return null;
+
       try {
-        const response = await fetch(`${API_URL}/cart`);
-        if (!response.ok) {
-          throw new Error("Не удалось загрузить корзину");
-        }
-
-        const data = await response.json();
-        renderCart(data);
-      } catch (error) {
-        console.error(error);
-        cartContainer.innerHTML = `
-          <div class="empty-box">
-            <h3>Ошибка загрузки</h3>
-            <p class="text-muted mb-0">Не удалось получить содержимое корзины.</p>
-          </div>
-        `;
+        return JSON.parse(raw);
+      } catch (e) {
+        return null;
       }
     }
 
-    function renderCart(data) {
-      const items = data.items || [];
-      const totalQty = data.total_qty || 0;
-      const totalPrice = data.total_price || 0;
+    function getAuthHeaders(includeJson = false) {
+      const token = getToken();
+      const headers = {};
 
-      currentTotalPrice = totalPrice;
-
-      totalQtyEl.textContent = totalQty;
-      totalPriceEl.textContent = formatPrice(totalPrice);
-      finalPriceEl.textContent = formatPrice(totalPrice);
-
-      if (!items.length) {
-        cartContainer.innerHTML = `
-          <div class="empty-box">
-            <h3>Корзина пуста</h3>
-            <p class="text-muted mb-0">Добавь товары из каталога.</p>
-          </div>
-        `;
-        checkoutBtn.disabled = true;
-        return;
+      if (includeJson) {
+        headers["Content-Type"] = "application/json";
       }
 
-      checkoutBtn.disabled = false;
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
 
-      cartContainer.innerHTML = `
-        <div class="cart-box">
-          ${items.map(item => `
-            <div class="cart-item">
-              <img
-                src="${escapeHtml(item.image_url || "")}"
-                alt="${escapeHtml(item.name || "")}"
-                class="cart-item-image"
-              >
-
-              <div class="cart-item-info">
-                <div class="cart-item-title">${escapeHtml(item.name || "Без названия")}</div>
-                <div class="cart-item-meta">Артикул: ${escapeHtml(item.sku || "")}</div>
-                <div class="cart-item-price">${formatPrice(item.price)}</div>
-
-                <div class="qty-controls">
-                  <button onclick="changeQty('${escapeJs(item.sku)}', ${item.qty - 1})">−</button>
-                  <div class="qty-value">${item.qty}</div>
-                  <button onclick="changeQty('${escapeJs(item.sku)}', ${item.qty + 1})">+</button>
-                </div>
-              </div>
-
-              <div class="cart-item-right">
-                <div class="cart-item-sum">${formatPrice(item.sum)}</div>
-                <button class="remove-btn" onclick="removeItem('${escapeJs(item.sku)}')">
-                  Удалить
-                </button>
-              </div>
-            </div>
-          `).join("")}
-        </div>
-      `;
+      return headers;
     }
 
-    async function changeQty(sku, qty) {
-      try {
-        const response = await fetch(`${API_URL}/update`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ sku, qty })
-        });
+    function syncAuthFromUrl() {
+      const params = new URLSearchParams(window.location.search);
 
-        if (!response.ok) {
-          throw new Error("Не удалось обновить количество");
-        }
+      const token = params.get("token");
+      const id = params.get("id");
+      const name = params.get("name");
+      const email = params.get("email");
+      const role = params.get("role");
 
-        await loadCart();
-      } catch (error) {
-        console.error(error);
-        alert(error.message);
-      }
+      if (!token) return;
+
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify({
+        id: id ? Number(id) : null,
+        name: name || "",
+        email: email || "",
+        role: role || ""
+      }));
+
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
     }
 
-    async function removeItem(sku) {
-      try {
-        const response = await fetch(`${API_URL}/remove?sku=${encodeURIComponent(sku)}`, {
-          method: "DELETE"
-        });
+    function buildCrossServiceUrl(baseUrl) {
+      const token = getToken();
+      const user = getUser();
 
-        if (!response.ok) {
-          throw new Error("Не удалось удалить товар");
-        }
-
-        await loadCart();
-      } catch (error) {
-        console.error(error);
-        alert(error.message);
+      if (!token || !user) {
+        return "http://localhost:9003/auth.html";
       }
+
+      const params = new URLSearchParams({
+        token: token,
+        id: String(user.id || ""),
+        name: user.name || "",
+        email: user.email || "",
+        role: user.role || ""
+      });
+
+      return `${baseUrl}?${params.toString()}`;
     }
 
-    async function checkout() {
-      try {
-        if (currentTotalPrice <= 0) {
-          alert("Корзина пуста");
-          return;
-        }
+    function openMainPage(event) {
+      if (event) event.preventDefault();
+      window.location.href = buildCrossServiceUrl("http://localhost:9000/main.html");
+      return false;
+    }
 
-        checkoutBtn.disabled = true;
-
-        const orderResponse = await fetch(`${ORDER_API_URL}/orders/create`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            user_id: 1,
-            total_amount: currentTotalPrice
-          })
-        });
-
-        if (!orderResponse.ok) {
-          throw new Error("Не удалось оформить заказ");
-        }
-
-        const order = await orderResponse.json();
-
-        const clearResponse = await fetch(`${API_URL}/clear`, {
-          method: "POST"
-        });
-
-        if (!clearResponse.ok) {
-          throw new Error("Заказ создан, но корзину очистить не удалось");
-        }
-
-      window.location.href = `http://localhost:9002/orders.html?order_id=${order.id}`;
-      } catch (error) {
-        console.error(error);
-        alert(error.message);
-      } finally {
-        checkoutBtn.disabled = false;
-      }
+    function openOrdersPage(event) {
+      if (event) event.preventDefault();
+      window.location.href = buildCrossServiceUrl("http://localhost:9002/orders.html");
+      return false;
     }
 
     function formatPrice(value) {
@@ -431,14 +398,289 @@
         .replaceAll("'", "&#39;");
     }
 
-    function escapeJs(str) {
-      return String(str || "")
-        .replaceAll("\\", "\\\\")
-        .replaceAll("'", "\\'");
+    function showAuthRequired() {
+      authRequired.classList.remove("d-none");
+      basketContent.classList.add("d-none");
     }
 
-    checkoutBtn.addEventListener("click", checkout);
-    document.addEventListener("DOMContentLoaded", loadCart);
+    function showBasketContent() {
+      authRequired.classList.add("d-none");
+      basketContent.classList.remove("d-none");
+    }
+
+    async function loadCart() {
+      const token = getToken();
+
+      if (!token) {
+        showAuthRequired();
+        return;
+      }
+
+      try {
+        const response = await fetch(`${CART_API}/cart`, {
+          method: "GET",
+          headers: getAuthHeaders()
+        });
+
+        if (response.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          showAuthRequired();
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error("Не удалось загрузить корзину");
+        }
+
+        const data = await response.json();
+        currentCart = data;
+
+        showBasketContent();
+        renderCart(data);
+      } catch (error) {
+        console.error("loadCart error:", error);
+        cartItemsWrap.innerHTML = `
+          <div class="empty-box">
+            <h3 class="mb-2">Ошибка загрузки</h3>
+            <p class="text-muted mb-0">Не удалось получить данные корзины.</p>
+          </div>
+        `;
+      }
+    }
+
+    function renderCart(data) {
+  const items = data.items || [];
+  const totalQty = data.total_qty || 0;
+  const totalPrice = data.total_price || 0;
+
+  totalQtyEl.textContent = totalQty;
+  totalPriceEl.textContent = formatPrice(totalPrice);
+  payPriceEl.textContent = formatPrice(totalPrice);
+
+  if (!items.length) {
+    cartItemsWrap.innerHTML = `
+      <div class="empty-box">
+        <h3 class="mb-2">Корзина пуста</h3>
+        <p class="text-muted mb-0">Добавьте товары из каталога.</p>
+      </div>
+    `;
+    return;
+  }
+
+  cartItemsWrap.innerHTML = items.map(item => `
+    <div class="cart-item">
+      <div>
+        <img
+          src="${escapeHtml(item.image_url || "")}"
+          alt="${escapeHtml(item.name)}"
+          class="item-image"
+        >
+      </div>
+
+      <div>
+        <div class="item-name">${escapeHtml(item.name)}</div>
+        <div class="item-meta">Артикул: ${escapeHtml(item.sku)}</div>
+
+        <div class="qty-box">
+          <button class="qty-btn qty-minus" data-sku="${escapeHtml(item.sku)}" data-qty="${item.qty - 1}">−</button>
+          <div class="qty-value">${item.qty}</div>
+          <button class="qty-btn qty-plus" data-sku="${escapeHtml(item.sku)}" data-qty="${item.qty + 1}">+</button>
+        </div>
+      </div>
+
+      <div class="item-right">
+        <div class="item-sum">${formatPrice(item.sum)}</div>
+        <button class="remove-btn remove-item-btn" data-sku="${escapeHtml(item.sku)}">
+          Удалить
+        </button>
+      </div>
+    </div>
+  `).join("");
+
+  cartItemsWrap.querySelectorAll(".qty-minus, .qty-plus").forEach(button => {
+    button.addEventListener("click", () => {
+      const sku = button.dataset.sku;
+      const qty = Number(button.dataset.qty);
+      changeQty(sku, qty);
+    });
+  });
+
+  cartItemsWrap.querySelectorAll(".remove-item-btn").forEach(button => {
+    button.addEventListener("click", () => {
+      const sku = button.dataset.sku;
+      removeItem(sku);
+    });
+  });
+}
+
+    async function changeQty(sku, qty) {
+      const token = getToken();
+      if (!token) {
+        showAuthRequired();
+        return;
+      }
+
+      try {
+        const response = await fetch(`${CART_API}/update`, {
+          method: "POST",
+          headers: getAuthHeaders(true),
+          body: JSON.stringify({ sku, qty })
+        });
+
+        if (response.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          showAuthRequired();
+          return;
+        }
+
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(text || "Не удалось обновить количество");
+        }
+
+        await loadCart();
+      } catch (error) {
+        console.error("changeQty error:", error);
+        alert("Ошибка: " + error.message);
+      }
+    }
+
+    async function removeItem(sku) {
+      const token = getToken();
+      if (!token) {
+        showAuthRequired();
+        return;
+      }
+
+      try {
+        const response = await fetch(`${CART_API}/remove?sku=${encodeURIComponent(sku)}`, {
+          method: "DELETE",
+          headers: getAuthHeaders()
+        });
+
+        if (response.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          showAuthRequired();
+          return;
+        }
+
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(text || "Не удалось удалить товар");
+        }
+
+        await loadCart();
+      } catch (error) {
+        console.error("removeItem error:", error);
+        alert("Ошибка: " + error.message);
+      }
+    }
+
+    async function clearCart() {
+      const token = getToken();
+      if (!token) {
+        showAuthRequired();
+        return;
+      }
+
+      try {
+        const response = await fetch(`${CART_API}/clear`, {
+          method: "POST",
+          headers: getAuthHeaders()
+        });
+
+        if (response.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          showAuthRequired();
+          return;
+        }
+
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(text || "Не удалось очистить корзину");
+        }
+
+        currentCart = { items: [], total_qty: 0, total_price: 0 };
+        await loadCart();
+      } catch (error) {
+        console.error("clearCart error:", error);
+        alert("Ошибка: " + error.message);
+      }
+    }
+
+    async function createOrder() {
+      const token = getToken();
+      if (!token) {
+        showAuthRequired();
+        return;
+      }
+
+      const totalAmount = Number(currentCart.total_price || 0);
+
+      if (totalAmount <= 0) {
+        alert("Корзина пуста.");
+        return;
+      }
+
+      orderBtn.disabled = true;
+      orderBtn.textContent = "Оформляем...";
+
+      try {
+        const response = await fetch(`${ORDERS_API}/create`, {
+          method: "POST",
+          headers: getAuthHeaders(true),
+          body: JSON.stringify({
+            total_amount: totalAmount
+          })
+        });
+
+        if (response.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          showAuthRequired();
+          return;
+        }
+
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(text || "Не удалось оформить заказ");
+        }
+
+        const order = await response.json();
+
+        const clearResponse = await fetch(`${CART_API}/clear`, {
+          method: "POST",
+          headers: getAuthHeaders()
+        });
+
+        if (!clearResponse.ok && clearResponse.status !== 401) {
+          console.warn("Корзина не очистилась автоматически");
+        }
+
+        window.location.href = buildCrossServiceUrl("http://localhost:9002/orders.html");
+      } catch (error) {
+        console.error("createOrder error:", error);
+        alert("Ошибка оформления заказа: " + error.message);
+      } finally {
+        orderBtn.disabled = false;
+        orderBtn.textContent = "Оформить заказ";
+      }
+    }
+
+    clearBtn.addEventListener("click", clearCart);
+    orderBtn.addEventListener("click", createOrder);
+
+    window.changeQty = changeQty;
+    window.removeItem = removeItem;
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      syncAuthFromUrl();
+      await loadCart();
+    });
   </script>
 </body>
 </html>
