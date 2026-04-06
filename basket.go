@@ -10,10 +10,12 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/segmentio/kafka-go"
 )
 
 var pool *pgxpool.Pool
 var jwtKey = []byte("my_secret_key")
+var kafkaWriter *kafka.Writer
 
 type Claims struct {
 	UserID int64  `json:"user_id"`
@@ -43,8 +45,30 @@ type UpdateRequest struct {
 	Qty int    `json:"qty"`
 }
 
+type AddEvent struct {
+	EventType string  `json:"event_type"`
+	UserID    int64   `json:"user_id"`
+	SKU       string  `json:"sku"`
+	Name      string  `json:"name"`
+	Qty       int     `json:"qty"`
+	Price     float64 `json:"price"`
+}
+
+type RemoveEvent struct {
+	EventType string `json:"event_type"`
+	UserID    int64  `json:"user_id"`
+	SKU       string `json:"sku"`
+}
+
 func main() {
 	var err error
+
+	kafkaWriter = &kafka.Writer{ //создание врайтера для отправки сообшщения
+		Addr:     kafka.TCP("localhost:9092"),
+		Topic:    "test-topic",
+		Balancer: &kafka.LeastBytes{},
+	}
+	defer kafkaWriter.Close()
 
 	pool, err = pgxpool.New(
 		context.Background(),
@@ -171,6 +195,26 @@ func cartHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
+func publishAddItem(ctx context.Context, userID int64, item Item) error { /////////////
+	event := AddEvent{
+		EventType: "item.added",
+		SKU:       item.SKU,
+		Name:      item.Name,
+		Qty:       item.Qty,
+		Price:     item.Price,
+		UserID:    userID,
+	}
+	data, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+
+	return kafkaWriter.WriteMessages(ctx, kafka.Message{
+		Key:   []byte(item.SKU),
+		Value: data,
+	})
+}
+
 func addHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "POST only", http.StatusMethodNotAllowed)
@@ -203,6 +247,10 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println("ADD DB ERROR:", err)
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
+	}
+
+	if err := publishAddItem(r.Context(), userID, item); err != nil { ///////////
+		log.Println("kafka publish error:", err)
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -274,6 +322,23 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, `{"status":"updated"}`)
 }
 
+func publishRemoveItem(ctx context.Context, userID int64, sku string) error { /////////////
+	event := RemoveEvent{
+		EventType: "item.removed",
+		UserID:    userID,
+		SKU:       sku,
+	}
+	data, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+
+	return kafkaWriter.WriteMessages(ctx, kafka.Message{
+		Key:   []byte(sku),
+		Value: data,
+	})
+}
+
 func removeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -305,6 +370,10 @@ func removeHandler(w http.ResponseWriter, r *http.Request) {
 	if result.RowsAffected() == 0 {
 		http.Error(w, "item not found", http.StatusNotFound)
 		return
+	}
+
+	if err := publishRemoveItem(r.Context(), userID, sku); err != nil { ///////////
+		log.Println("kafka publish error:", err)
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")

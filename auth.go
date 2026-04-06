@@ -11,12 +11,13 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/segmentio/kafka-go"
 	"golang.org/x/crypto/bcrypt"
 )
 
 var pool *pgxpool.Pool
-
-//const sessionID = "marina-dev"
+var kafkaWriter *kafka.Writer
+var jwtKey = []byte("my_secret_key")
 
 type User struct {
 	ID           int64     `json:"id"`
@@ -58,8 +59,40 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
+type LoginEvent struct {
+	EventType string    `json:"event_type"`
+	UserID    int64     `json:"user_id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Role      string    `json:"role"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type RegisterEvent struct {
+	EventType string    `json:"event_type"`
+	UserID    int64     `json:"user_id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Role      string    `json:"role"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type LoginFailedEvent struct {
+	EventType string    `json:"event_type"`
+	Email     string    `json:"email"`
+	Reason    string    `json:"reason"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 func main() {
 	var err error
+
+	kafkaWriter = &kafka.Writer{
+		Addr:     kafka.TCP("localhost:9092"),
+		Topic:    "test-topic",
+		Balancer: &kafka.LeastBytes{},
+	}
+	defer kafkaWriter.Close()
 
 	pool, err = pgxpool.New(
 		context.Background(),
@@ -81,6 +114,64 @@ func main() {
 
 	log.Println("Auth service starting on :9003")
 	log.Fatal(http.ListenAndServe(":9003", withCORS(mux)))
+}
+
+func publishRegisterEvent(ctx context.Context, userID int64, user RegisterRequest) error { /////////////
+	event := RegisterEvent{
+		EventType: "user.registered",
+		UserID:    userID,
+		Name:      user.Name,
+		Email:     user.Email,
+		Role:      "user",
+		CreatedAt: time.Now(),
+	}
+	data, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+
+	return kafkaWriter.WriteMessages(ctx, kafka.Message{
+		Key:   []byte(fmt.Sprintf("%d", userID)),
+		Value: data,
+	})
+}
+
+func publishLoginEvent(ctx context.Context, userID int64, user User) error { /////////////
+	event := LoginEvent{
+		EventType: "user.logged_in",
+		UserID:    userID,
+		Name:      user.Name,
+		Email:     user.Email,
+		Role:      user.Role,
+		CreatedAt: time.Now(),
+	}
+	data, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+
+	return kafkaWriter.WriteMessages(ctx, kafka.Message{
+		Key:   []byte(fmt.Sprintf("%d", userID)),
+		Value: data,
+	})
+}
+
+func publishLoginFailedEvent(ctx context.Context, email, reason string) error { /////////////
+	event := LoginFailedEvent{
+		EventType: "user.login_failed",
+		Email:     email,
+		Reason:    reason,
+		CreatedAt: time.Now(),
+	}
+	data, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+
+	return kafkaWriter.WriteMessages(ctx, kafka.Message{
+		Key:   []byte(email),
+		Value: data,
+	})
 }
 
 func regHandler(w http.ResponseWriter, r *http.Request) {
@@ -117,15 +208,22 @@ func regHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "hash error", http.StatusInternalServerError)
 		return
 	}
-	_, err = pool.Exec(r.Context(), `
-		INSERT INTO users (name, email, password_hash)
-		VALUES ($1, $2, $3)
-	`, user.Name, user.Email, string(hashedPassword))
+
+	var userID int64
+	err = pool.QueryRow(r.Context(), `
+    INSERT INTO users (name, email, password_hash)
+    VALUES ($1, $2, $3)
+    RETURNING id
+`, user.Name, user.Email, string(hashedPassword)).Scan(&userID)
 
 	if err != nil {
 		log.Println("ADD DB ERROR:", err)
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
+	}
+
+	if err := publishRegisterEvent(r.Context(), userID, user); err != nil { ///////////
+		log.Println("kafka publish error:", err)
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -157,15 +255,22 @@ func logHandler(w http.ResponseWriter, r *http.Request) {
 		&user.CreatedAt,
 	)
 	if err != nil {
+		if err := publishLoginFailedEvent(r.Context(), req.Email, "user_not_found"); err != nil {
+			log.Println("kafka publish error:", err)
+		}
 		http.Error(w, "invalid email or password", http.StatusUnauthorized)
 		return
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password))
 	if err != nil {
+		if err := publishLoginFailedEvent(r.Context(), req.Email, "wrong_password"); err != nil {
+			log.Println("kafka publish error:", err)
+		}
 		http.Error(w, "invalid email or password", http.StatusUnauthorized)
 		return
 	}
+
 	token, err := generateJWT(user)
 	if err != nil {
 		http.Error(w, "token error", http.StatusInternalServerError)
@@ -182,11 +287,12 @@ func logHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
+	if err := publishLoginEvent(r.Context(), user.ID, user); err != nil { ///////////
+		log.Println("kafka publish error:", err)
+	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(response)
 }
-
-var jwtKey = []byte("my_secret_key")
 
 func generateJWT(user User) (string, error) {
 	expirationTime := time.Now().Add(24 * time.Hour)
@@ -207,6 +313,11 @@ func generateJWT(user User) (string, error) {
 
 func authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
 			http.Error(w, "missing token", http.StatusUnauthorized)

@@ -11,9 +11,11 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/segmentio/kafka-go"
 )
 
 var pool *pgxpool.Pool
+var kafkaWriter *kafka.Writer //создаём глобальную переменную отпраки
 var jwtKey = []byte("my_secret_key")
 
 type Claims struct {
@@ -37,8 +39,25 @@ type CreateOrderRequest struct {
 	TotalAmount float64 `json:"total_amount"`
 }
 
+type OrderCreatedEvent struct {
+	EventType       string    `json:"event_type"`
+	OrderID         int64     `json:"order_id"`
+	UserID          int64     `json:"user_id"`
+	UserOrderNumber int       `json:"user_order_number"`
+	TotalAmount     float64   `json:"total_amount"`
+	PaymentStatus   string    `json:"payment_status"`
+	CreatedAt       time.Time `json:"created_at"`
+}
+
 func main() {
 	var err error
+
+	kafkaWriter = &kafka.Writer{ //создание врайтера для отправки сообшщения
+		Addr:     kafka.TCP("localhost:9092"),
+		Topic:    "test-topic",
+		Balancer: &kafka.LeastBytes{},
+	}
+	defer kafkaWriter.Close()
 
 	pool, err = pgxpool.New(
 		context.Background(),
@@ -191,6 +210,28 @@ func getOrdersHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(orders)
 }
 
+func publishOrderCreated(ctx context.Context, order Order) error { /////////////
+	event := OrderCreatedEvent{
+		EventType:       "order.created",
+		OrderID:         order.ID,
+		UserID:          order.UserID,
+		UserOrderNumber: order.UserOrderNumber,
+		TotalAmount:     order.TotalAmount,
+		PaymentStatus:   order.PaymentStatus,
+		CreatedAt:       order.CreatedAt,
+	}
+
+	data, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+
+	return kafkaWriter.WriteMessages(ctx, kafka.Message{
+		Key:   []byte(strconv.FormatInt(order.ID, 10)),
+		Value: data,
+	})
+}
+
 func createOrderHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "POST only", http.StatusMethodNotAllowed)
@@ -220,6 +261,13 @@ func createOrderHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback(r.Context())
+
+	kafkaWriter = &kafka.Writer{ //создание врайтера для отправки сообшщения
+		Addr:     kafka.TCP("localhost:9092"),
+		Topic:    "test-topic",
+		Balancer: &kafka.LeastBytes{},
+	}
+	defer kafkaWriter.Close() //
 
 	var nextNumber int
 	err = tx.QueryRow(r.Context(), `
@@ -255,6 +303,10 @@ func createOrderHandler(w http.ResponseWriter, r *http.Request) {
 	if err := tx.Commit(r.Context()); err != nil {
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
+	}
+
+	if err := publishOrderCreated(r.Context(), order); err != nil { ///////////
+		log.Println("kafka publish error:", err)
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")

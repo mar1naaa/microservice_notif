@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Журнал событий</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      color: #222;
+    }
+
+    .wrapper {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    h1 {
+      margin-bottom: 8px;
+    }
+
+    .status {
+      margin-bottom: 20px;
+      color: #666;
+    }
+
+    .table-box {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    thead {
+      background: #1f2937;
+      color: white;
+    }
+
+    th, td {
+      padding: 12px 10px;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    tbody tr:hover {
+      background: #f9fafb;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: bold;
+      white-space: nowrap;
+      background: #e0ecff;
+      color: #1d4ed8;
+    }
+
+    .badge.success {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .badge.error {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .badge.cart {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .raw {
+      max-width: 420px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: monospace;
+      font-size: 12px;
+      color: #444;
+    }
+
+    .empty {
+      padding: 18px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+  <h1>Журнал событий</h1>
+  <div class="status" id="status">Подключение...</div>
+
+  <div class="filters">
+    <select id="eventTypeFilter">
+      <option value="">Все события</option>
+    </select>
+
+    <input
+      type="text"
+      id="searchInput"
+      placeholder="Поиск"
+    />
+  </div>
+
+  <div class="table-box">
+    <table>
+      <thead>
+        <tr>
+          <th>Время</th>
+          <th>Тип события</th>
+          <th>User ID</th>
+          <th>Email</th>
+          <th>SKU</th>
+          <th>Имя</th>
+          <th>Причина</th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        <tr>
+          <td colspan="8" class="empty">Пока событий нет</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+  <script>
+  const statusEl = document.getElementById("status");
+  const tbody = document.getElementById("tbody");
+  const eventTypeFilter = document.getElementById("eventTypeFilter");
+  const searchInput = document.getElementById("searchInput");
+
+  const allEvents = [];
+
+  function escapeHtml(value) {
+    if (value === null || value === undefined) return "";
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;");
+  }
+
+  function badgeClass(eventType) {
+    if (!eventType) return "badge";
+    if (eventType.includes("failed")) return "badge error";
+    if (
+      eventType.includes("added") ||
+      eventType.includes("registered") ||
+      eventType.includes("logged_in")
+    ) return "badge success";
+    if (eventType.includes("item") || eventType.includes("cart")) return "badge cart";
+    return "badge";
+  }
+
+  function getSearchText(event) {
+    return [
+      event.time,
+      event.event_type,
+      event.user_id,
+      event.email,
+      event.sku,
+      event.name,
+      event.reason,
+    ]
+      .join(" ")
+      .toLowerCase();
+  }
+
+  function updateEventTypeOptions() {
+    const currentValue = eventTypeFilter.value;
+    const uniqueTypes = [...new Set(allEvents.map(e => e.event_type).filter(Boolean))].sort();
+
+    eventTypeFilter.innerHTML = `<option value="">Все события</option>`;
+
+    uniqueTypes.forEach(type => {
+      const option = document.createElement("option");
+      option.value = type;
+      option.textContent = type;
+      eventTypeFilter.appendChild(option);
+    });
+
+    eventTypeFilter.value = currentValue;
+  }
+
+  function renderTable() {
+    const selectedType = eventTypeFilter.value;
+    const searchValue = searchInput.value.trim().toLowerCase();
+
+    const filtered = allEvents.filter(event => {
+      const matchesType = !selectedType || event.event_type === selectedType;
+      const matchesSearch = !searchValue || getSearchText(event).includes(searchValue);
+      return matchesType && matchesSearch;
+    });
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="8" class="empty">Ничего не найдено</td>
+        </tr>
+      `;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(event => `
+      <tr>
+        <td>${escapeHtml(event.time)}</td>
+        <td><span class="${badgeClass(event.event_type)}">${escapeHtml(event.event_type)}</span></td>
+        <td>${escapeHtml(event.user_id)}</td>
+        <td>${escapeHtml(event.email)}</td>
+        <td>${escapeHtml(event.sku)}</td>
+        <td>${escapeHtml(event.name)}</td>
+        <td>${escapeHtml(event.reason)}</td>
+      </tr>
+    `).join("");
+  }
+
+  function addEvent(event) {
+    allEvents.unshift(event);
+
+    if (allEvents.length > 100) {
+      allEvents.length = 100;
+    }
+
+    updateEventTypeOptions();
+    renderTable();
+  }
+
+  eventTypeFilter.addEventListener("change", renderTable);
+  searchInput.addEventListener("input", renderTable);
+
+  const source = new EventSource("/api/events");
+
+  source.onopen = function () {
+    statusEl.textContent = "Подключено. Новые события появляются автоматически.";
+  };
+
+  source.onmessage = function (e) {
+    try {
+      const event = JSON.parse(e.data);
+      addEvent(event);
+    } catch (err) {
+      console.error("Ошибка разбора события:", err);
+    }
+  };
+  source.onerror = function () {
+    statusEl.textContent = "Ошибка соединения. Пытаюсь переподключиться...";
+  };
+  </script>
+</body>
+</html>
