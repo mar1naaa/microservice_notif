@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS notifications (
+    id BIGSERIAL PRIMARY KEY,
+    event_time TIMESTAMP NOT NULL DEFAULT NOW(),
+    event_type TEXT NOT NULL,
+    user_id TEXT,
+    user_name TEXT,
+    email TEXT,
+    sku TEXT,
+    product_name TEXT,
+    reason TEXT,
+    raw_json JSONB
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_event_time
+ON notifications (event_time DESC);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_event_type
+ON notifications (event_type);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id
+ON notifications (user_id);
+
+select * notifications

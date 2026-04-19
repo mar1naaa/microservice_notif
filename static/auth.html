@@ -192,6 +192,9 @@
                   class="form-control"
                   id="regPassword"
                   placeholder="Пароль"
+                  minlength="8"
+                  pattern="^(?=.*\d).{8,}$"
+                  title="Пароль должен быть не короче 8 символов и содержать хотя бы 1 цифру"
                   required
                 />
               </div>
@@ -238,23 +241,6 @@
             </form>
 
             <div id="loginStatus" class="status-text text-muted"></div>
-
-            <div class="profile-box mt-3" id="profileBox">
-              Пользователь не авторизован
-            </div>
-
-            <div class="d-flex gap-2 mt-3 flex-wrap">
-              <button type="button" class="btn btn-outline-secondary soft-btn flex-fill" id="meBtn">
-                Мой профиль
-              </button>
-              <button type="button" class="btn btn-outline-danger soft-btn flex-fill" id="logoutBtn">
-                Выйти
-              </button>
-            </div>
-
-            <p class="muted-note mt-3 mb-0">
-              После входа произойдёт автоматический переход в каталог.
-            </p>
           </div>
         </div>
       </div>
@@ -262,171 +248,188 @@
   </div>
 
   <script>
-  const API = "http://localhost:9003";
+    const API = "http://localhost:9003";
 
-  const registerForm = document.getElementById("registerForm");
-  const loginForm = document.getElementById("loginForm");
-  const registerStatus = document.getElementById("registerStatus");
-  const loginStatus = document.getElementById("loginStatus");
-  const profileBox = document.getElementById("profileBox");
-  const meBtn = document.getElementById("meBtn");
-  const logoutBtn = document.getElementById("logoutBtn");
+    const registerForm = document.getElementById("registerForm");
+    const loginForm = document.getElementById("loginForm");
+    const registerStatus = document.getElementById("registerStatus");
+    const loginStatus = document.getElementById("loginStatus");
+    const profileBox = document.getElementById("profileBox");
+    const meBtn = document.getElementById("meBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
 
-  function setStatus(element, message, type = "muted") {
-    element.className = `status-text text-${type}`;
-    element.textContent = message;
-  }
-
-  function saveAuth(data) {
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("user", JSON.stringify(data.user));
-  }
-
-  function clearAuth() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-  }
-
-  function getToken() {
-    return localStorage.getItem("token");
-  }
-
-  function getUser() {
-    const raw = localStorage.getItem("user");
-    return raw ? JSON.parse(raw) : null;
-  }
-
-  function renderUser() {
-    const user = getUser();
-
-    if (!user) {
-      profileBox.textContent = "Пользователь не авторизован";
-      return;
+    function setStatus(element, message, type = "muted") {
+      element.className = `status-text text-${type}`;
+      element.textContent = message;
     }
 
-    profileBox.innerHTML = `
-      <div><strong>Имя:</strong> ${user.name}</div>
-      <div><strong>Email:</strong> ${user.email}</div>
-      <div><strong>Роль:</strong> ${user.role}</div>
-    `;
-  }
+    function saveAuth(data) {
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+    }
 
-  registerForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    setStatus(registerStatus, "");
+    function clearAuth() {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    }
 
-    const body = {
-      name: document.getElementById("regName").value.trim(),
-      email: document.getElementById("regEmail").value.trim(),
-      password: document.getElementById("regPassword").value.trim()
-    };
+    function getToken() {
+      return localStorage.getItem("token");
+    }
 
-    try {
-      const res = await fetch(`${API}/api/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-      });
+    function getUser() {
+      const raw = localStorage.getItem("user");
+      return raw ? JSON.parse(raw) : null;
+    }
 
-      const text = await res.text();
+    function renderUser() {
+      if (!profileBox) return;
 
-      if (!res.ok) {
-        throw new Error(text || "Ошибка регистрации");
+      const user = getUser();
+
+      if (!user) {
+        profileBox.textContent = "Пользователь не авторизован";
+        return;
       }
 
-      setStatus(registerStatus, "Регистрация успешна", "success");
-      registerForm.reset();
-    } catch (error) {
-      setStatus(registerStatus, error.message, "danger");
+      profileBox.innerHTML = `
+        <div><strong>Имя:</strong> ${user.name}</div>
+        <div><strong>Email:</strong> ${user.email}</div>
+        <div><strong>Роль:</strong> ${user.role}</div>
+      `;
     }
-  });
 
-  loginForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    setStatus(loginStatus, "");
+    registerForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      setStatus(registerStatus, "");
 
-    const body = {
-      email: document.getElementById("loginEmail").value.trim(),
-      password: document.getElementById("loginPassword").value.trim()
-    };
+      const body = {
+        name: document.getElementById("regName").value.trim(),
+        email: document.getElementById("regEmail").value.trim(),
+        password: document.getElementById("regPassword").value.trim()
+      };
 
-    try {
-      const res = await fetch(`${API}/api/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-      });
+      const passwordRegex = /^(?=.*\d).{8,}$/;
 
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok || !data) {
-        throw new Error("Неверный email или пароль");
+      if (!passwordRegex.test(body.password)) {
+        setStatus(
+          registerStatus,
+          "Пароль должен быть не короче 8 символов и содержать хотя бы 1 цифру",
+          "danger"
+        );
+        return;
       }
 
-      saveAuth(data);
+      try {
+        const res = await fetch(`${API}/api/register`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(body)
+        });
 
-      const params = new URLSearchParams({
-        token: data.token || "",
-        id: String(data.user?.id || ""),
-        name: data.user?.name || "",
-        email: data.user?.email || "",
-        role: data.user?.role || ""
-      });
+        const text = await res.text();
 
-      setStatus(loginStatus, "Вход выполнен", "success");
-      loginForm.reset();
+        if (!res.ok) {
+          throw new Error(text || "Ошибка регистрации");
+        }
 
-      setTimeout(() => {
-        window.location.href = `http://localhost:9000/main.html?${params.toString()}`;
-      }, 300);
-    } catch (error) {
-      setStatus(loginStatus, error.message, "danger");
-    }
-  });
+        setStatus(registerStatus, "Регистрация успешна", "success");
+        registerForm.reset();
+      } catch (error) {
+        setStatus(registerStatus, error.message, "danger");
+      }
+    });
 
-  meBtn.addEventListener("click", async () => {
-    const token = getToken();
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      setStatus(loginStatus, "");
 
-    if (!token) {
-      setStatus(loginStatus, "Сначала войдите", "warning");
-      return;
-    }
+      const body = {
+        email: document.getElementById("loginEmail").value.trim(),
+        password: document.getElementById("loginPassword").value.trim()
+      };
 
-    try {
-      const res = await fetch(`${API}/api/me`, {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${token}`
+      try {
+        const res = await fetch(`${API}/api/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(body)
+        });
+
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok || !data) {
+          throw new Error("Неверный email или пароль");
+        }
+
+        saveAuth(data);
+
+        const params = new URLSearchParams({
+          token: data.token || "",
+          id: String(data.user?.id || ""),
+          name: data.user?.name || "",
+          email: data.user?.email || "",
+          role: data.user?.role || ""
+        });
+
+        setStatus(loginStatus, "Вход выполнен", "success");
+        loginForm.reset();
+
+        setTimeout(() => {
+          window.location.href = `http://localhost:9000/main.html?${params.toString()}`;
+        }, 300);
+      } catch (error) {
+        setStatus(loginStatus, error.message, "danger");
+      }
+    });
+
+    if (meBtn) {
+      meBtn.addEventListener("click", async () => {
+        const token = getToken();
+
+        if (!token) {
+          setStatus(loginStatus, "Сначала войдите", "warning");
+          return;
+        }
+
+        try {
+          const res = await fetch(`${API}/api/me`, {
+            method: "GET",
+            headers: {
+              "Authorization": `Bearer ${token}`
+            }
+          });
+
+          const data = await res.json().catch(() => null);
+
+          if (!res.ok || !data) {
+            throw new Error("Токен недействителен");
+          }
+
+          localStorage.setItem("user", JSON.stringify(data));
+          renderUser();
+          setStatus(loginStatus, "Профиль загружен", "success");
+        } catch (error) {
+          clearAuth();
+          renderUser();
+          setStatus(loginStatus, error.message, "danger");
         }
       });
-
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok || !data) {
-        throw new Error("Токен недействителен");
-      }
-
-      localStorage.setItem("user", JSON.stringify(data));
-      renderUser();
-      setStatus(loginStatus, "Профиль загружен", "success");
-    } catch (error) {
-      clearAuth();
-      renderUser();
-      setStatus(loginStatus, error.message, "danger");
     }
-  });
 
-  logoutBtn.addEventListener("click", () => {
-    clearAuth();
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", () => {
+        clearAuth();
+        renderUser();
+        setStatus(loginStatus, "Вы вышли из аккаунта", "secondary");
+      });
+    }
+
     renderUser();
-    setStatus(loginStatus, "Вы вышли из аккаунта", "secondary");
-  });
-
-  renderUser();
   </script>
 </body>
 </html>

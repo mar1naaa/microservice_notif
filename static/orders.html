@@ -72,6 +72,44 @@
       margin-bottom: 0.4rem;
     }
 
+    .order-product {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 18px;
+      padding: 10px 0;
+      border-bottom: 1px solid #f1f1f1;
+    }
+
+    .order-product:last-child {
+      border-bottom: none;
+    }
+
+    .order-product > div:first-child {
+      flex: 0 1 320px;
+    }
+
+    .order-product-name {
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .order-product-meta {
+      color: #666;
+      margin-bottom: 2px;
+    }
+
+    .order-product-image {
+      width: 90px;
+      height: 90px;
+      object-fit: cover;
+      border-radius: 12px;
+      background: #fff;
+      border: 1px solid #eee;
+      display: block;
+      flex: 0 0 90px;
+    }
+
     .order-row {
       margin-bottom: 0.25rem;
       color: #555;
@@ -188,7 +226,7 @@
       window.history.replaceState({}, document.title, cleanUrl);
     }
 
-    function buildCrossServiceUrl(baseUrl) {
+    function buildCrossServiceUrl(rawUrl) {
       const token = getToken();
       const user = getUser();
 
@@ -196,15 +234,18 @@
         return "http://localhost:9003/auth.html";
       }
 
-      const params = new URLSearchParams({
-        token: token,
-        id: String(user.id || ""),
-        name: user.name || "",
-        email: user.email || "",
-        role: user.role || ""
-      });
+      const url = new URL(rawUrl);
 
-      return `${baseUrl}?${params.toString()}`;
+      url.searchParams.set("token", token);
+      url.searchParams.set("id", String(user.id || ""));
+      url.searchParams.set("name", user.name || "");
+      url.searchParams.set("email", user.email || "");
+      url.searchParams.set("role", user.role || "");
+
+      // защита от открытия старой версии страницы из кэша
+      url.searchParams.set("_v", String(Date.now()));
+
+      return url.toString();
     }
 
     function openMainPage(event) {
@@ -262,6 +303,21 @@
       }
     }
 
+    function resolveImageUrl(url) {
+      const value = String(url || "").trim();
+      if (!value) return "";
+
+      if (value.startsWith("http://") || value.startsWith("https://")) {
+        return value;
+      }
+
+      if (value.startsWith("/")) {
+        return `http://localhost:9000${value}`;
+      }
+
+      return `http://localhost:9000/${value}`;
+    }
+
     function renderOrders(orders) {
       if (!Array.isArray(orders) || !orders.length) {
         ordersContainer.innerHTML = `
@@ -272,6 +328,11 @@
         `;
         return;
       }
+      
+      function formatDateOnly(value) {
+        const date = new Date(value);
+        return date.toLocaleDateString("ru-RU");
+      }
 
       ordersContainer.innerHTML = `
         <div class="orders-box">
@@ -279,20 +340,53 @@
             <div class="order-item">
               <div class="order-title">Заказ №${order.user_order_number}</div>
               <div class="order-row">Сумма: ${formatPrice(order.total_amount)}</div>
-              <div class="order-row">
+              <div class="order-row">Пункт выдачи: ${escapeHtml(order.pickup_address || "Не указан")}</div>
+                <div class="order-row">
+                  Дата прибытия: ${order.arrival_date ? formatDateOnly(order.arrival_date) : "Не указано"}
+                </div>
                 Статус оплаты:
                 <span class="order-status ${statusClass(order.payment_status)}">
                   ${statusText(order.payment_status)}
                 </span>
               </div>
               <div class="order-row">
-                Дата: ${formatDate(order.created_at)}
+                Дата оформления: ${formatDate(order.created_at)}
+              </div>
+
+              <div class="mt-3">
+                <strong>Состав заказа:</strong>
+                ${
+                  Array.isArray(order.items) && order.items.length
+                    ? `
+                      <div class="mt-2">
+                        ${order.items.map(item => `
+                          <div class="order-product">
+                            <div>
+                              <div class="order-product-name">${escapeHtml(item.name)}</div>
+                              <div class="order-product-meta">Артикул: ${escapeHtml(item.sku)}</div>
+                              <div class="order-product-meta">Количество: ${item.qty}</div>
+                              <div class="order-product-meta">Цена: ${formatPrice(item.price)}</div>
+                            </div>
+
+                            <div>
+                              <img
+                                src="${escapeHtml(resolveImageUrl(item.image_url))}"
+                                alt="${escapeHtml(item.name)}"
+                                class="order-product-image"
+                              >
+                            </div>
+                          </div>
+                        `).join("")}
+                      </div>
+                    `
+                    : `<div class="text-muted mt-2">Нет товаров</div>`
+                }
               </div>
             </div>
           `).join("")}
         </div>
       `;
-    }
+}
 
     function statusText(status) {
       const normalized = String(status || "").toLowerCase();

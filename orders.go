@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -27,16 +28,34 @@ type Claims struct {
 }
 
 type Order struct {
-	ID              int64     `json:"id"`
-	UserID          int64     `json:"user_id"`
-	UserOrderNumber int       `json:"user_order_number"`
-	TotalAmount     float64   `json:"total_amount"`
-	PaymentStatus   string    `json:"payment_status"`
-	CreatedAt       time.Time `json:"created_at"`
+	ID              int64       `json:"id"`
+	UserID          int64       `json:"user_id"`
+	UserOrderNumber int         `json:"user_order_number"`
+	TotalAmount     float64     `json:"total_amount"`
+	PaymentStatus   string      `json:"payment_status"`
+	CreatedAt       time.Time   `json:"created_at"`
+	PickupAdress    string      `json:"pickup_address"`
+	ArrivalDate     time.Time   `json:"arrival_date"`
+	Items           []OrderItem `json:"items"`
 }
 
 type CreateOrderRequest struct {
 	TotalAmount float64 `json:"total_amount"`
+}
+
+type OrderItem struct {
+	SKU      string  `json:"sku"`
+	Name     string  `json:"name"`
+	ImageURL string  `json:"image_url"`
+	Qty      int     `json:"qty"`
+	Price    float64 `json:"price"`
+	Sum      float64 `json:"sum"`
+}
+
+type CartResponse struct {
+	Items      []OrderItem `json:"items"`
+	TotalQty   int         `json:"total_qty"`
+	TotalPrice float64     `json:"total_price"`
 }
 
 type OrderCreatedEvent struct {
@@ -73,8 +92,18 @@ func main() {
 	mux.Handle("/api/orders", authMiddleware(http.HandlerFunc(getOrdersHandler)))
 	mux.Handle("/api/orders/create", authMiddleware(http.HandlerFunc(createOrderHandler)))
 
+	// fs := http.FileServer(http.Dir("static"))
+	// mux.Handle("/", fs)
+
 	fs := http.FileServer(http.Dir("static"))
-	mux.Handle("/", fs)
+	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, ".html") {
+			w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
+			w.Header().Set("Pragma", "no-cache")
+			w.Header().Set("Expires", "0")
+		}
+		fs.ServeHTTP(w, r)
+	}))
 
 	log.Println("Order service starting on :9002")
 	log.Fatal(http.ListenAndServe(":9002", withCORS(mux)))
@@ -123,6 +152,43 @@ func getUserID(r *http.Request) (int64, bool) {
 	return claims.UserID, true
 }
 
+func loadOrderItems(ctx context.Context, orderID int64) ([]OrderItem, error) {
+	rows, err := pool.Query(ctx, `
+		SELECT sku, name, image_url, qty, price
+		FROM order_items
+		WHERE order_id = $1
+		ORDER BY id
+	`, orderID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	items := []OrderItem{}
+
+	for rows.Next() {
+		var item OrderItem
+		if err := rows.Scan(
+			&item.SKU,
+			&item.Name,
+			&item.ImageURL,
+			&item.Qty,
+			&item.Price,
+		); err != nil {
+			return nil, err
+		}
+
+		item.Sum = item.Price * float64(item.Qty)
+		items = append(items, item)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return items, nil
+}
+
 func getOrdersHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "GET only", http.StatusMethodNotAllowed)
@@ -137,6 +203,7 @@ func getOrdersHandler(w http.ResponseWriter, r *http.Request) {
 
 	idStr := r.URL.Query().Get("id")
 
+	// Один конкретный заказ
 	if idStr != "" {
 		orderID, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
@@ -146,7 +213,7 @@ func getOrdersHandler(w http.ResponseWriter, r *http.Request) {
 
 		var order Order
 		err = pool.QueryRow(r.Context(), `
-			SELECT id, user_id, user_order_number, total_amount, payment_status, created_at
+			SELECT id, user_id, user_order_number, total_amount, payment_status, created_at, pickup_address, arrival_date
 			FROM orders
 			WHERE id = $1 AND user_id = $2
 		`, orderID, userID).Scan(
@@ -156,25 +223,34 @@ func getOrdersHandler(w http.ResponseWriter, r *http.Request) {
 			&order.TotalAmount,
 			&order.PaymentStatus,
 			&order.CreatedAt,
+			&order.PickupAdress,
+			&order.ArrivalDate,
 		)
 		if err != nil {
 			http.Error(w, "order not found", http.StatusNotFound)
 			return
 		}
 
+		items, err := loadOrderItems(r.Context(), order.ID)
+		if err != nil {
+			http.Error(w, "db error", http.StatusInternalServerError)
+			return
+		}
+		order.Items = items
+
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		json.NewEncoder(w).Encode(order)
 		return
 	}
 
+	// Список всех заказов пользователя
 	rows, err := pool.Query(r.Context(), `
-		SELECT id, user_id, user_order_number, total_amount, payment_status, created_at
+		SELECT id, user_id, user_order_number, total_amount, payment_status, created_at, pickup_address, arrival_date
 		FROM orders
 		WHERE user_id = $1
 		ORDER BY created_at DESC
 	`, userID)
 	if err != nil {
-		log.Println("orders query error:", err)
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
 	}
@@ -191,18 +267,25 @@ func getOrdersHandler(w http.ResponseWriter, r *http.Request) {
 			&order.TotalAmount,
 			&order.PaymentStatus,
 			&order.CreatedAt,
+			&order.PickupAdress,
+			&order.ArrivalDate,
 		); err != nil {
-			log.Println("scan order error:", err)
-			http.Error(w, "scan error", http.StatusInternalServerError)
+			http.Error(w, "db error", http.StatusInternalServerError)
 			return
 		}
+
+		items, err := loadOrderItems(r.Context(), order.ID)
+		if err != nil {
+			http.Error(w, "db error", http.StatusInternalServerError)
+			return
+		}
+		order.Items = items
 
 		orders = append(orders, order)
 	}
 
 	if err := rows.Err(); err != nil {
-		log.Println("rows error:", err)
-		http.Error(w, "rows error", http.StatusInternalServerError)
+		http.Error(w, "db error", http.StatusInternalServerError)
 		return
 	}
 
@@ -232,6 +315,114 @@ func publishOrderCreated(ctx context.Context, order Order) error { /////////////
 	})
 }
 
+func fetchCart(ctx context.Context, authHeader string) (*CartResponse, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost:9001/api/cart", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", authHeader)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("basket service returned status %d", resp.StatusCode)
+	}
+
+	var cart CartResponse
+	if err := json.NewDecoder(resp.Body).Decode(&cart); err != nil {
+		return nil, err
+	}
+
+	return &cart, nil
+}
+
+// func createOrderHandler(w http.ResponseWriter, r *http.Request) {
+// 	if r.Method != http.MethodPost {
+// 		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+// 		return
+// 	}
+
+// 	userID, ok := getUserID(r)
+// 	if !ok {
+// 		http.Error(w, "unauthorized", http.StatusUnauthorized)
+// 		return
+// 	}
+
+// 	var req CreateOrderRequest
+// 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+// 		http.Error(w, "broken json", http.StatusBadRequest)
+// 		return
+// 	}
+
+// 	if req.TotalAmount < 0 {
+// 		http.Error(w, "total_amount must be >= 0", http.StatusBadRequest)
+// 		return
+// 	}
+
+// 	tx, err := pool.Begin(r.Context())
+// 	if err != nil {
+// 		http.Error(w, "db error", http.StatusInternalServerError)
+// 		return
+// 	}
+// 	defer tx.Rollback(r.Context())
+
+// 	kafkaWriter = &kafka.Writer{ //создание врайтера для отправки сообшщения
+// 		Addr:     kafka.TCP("localhost:9092"),
+// 		Topic:    "test-topic",
+// 		Balancer: &kafka.LeastBytes{},
+// 	}
+// 	defer kafkartResponsaWriter.Close() //
+
+// 	var nextNumber int
+// 	err = tx.QueryRow(r.Context(), `
+// 		SELECT COALESCE(MAX(user_order_number), 0) + 1
+// 		FROM orders
+// 		WHERE user_id = $1
+// 	`, userID).Scan(&nextNumber)
+// 	if err != nil {
+// 		log.Println("next order number error:", err)
+// 		http.Error(w, "db error", http.StatusInternalServerError)
+// 		return
+// 	}
+
+// 	var order Order
+// 	err = tx.QueryRow(r.Context(), `
+// 		INSERT INTO orders (user_id, user_order_number, total_amount)
+// 		VALUES ($1, $2, $3)
+// 		RETURNING id, user_id, user_order_number, total_amount, payment_status, created_at
+// 	`, userID, nextNumber, req.TotalAmount).Scan(
+// 		&order.ID,
+// 		&order.UserID,
+// 		&order.UserOrderNumber,
+// 		&order.TotalAmount,
+// 		&order.PaymentStatus,
+// 		&order.CreatedAt,
+// 	)
+// 	if err != nil {
+// 		log.Println("create order error:", err)
+// 		http.Error(w, "db error", http.StatusInternalServerError)
+// 		return
+// 	}
+
+// 	if err := tx.Commit(r.Context()); err != nil {
+// 		http.Error(w, "db error", http.StatusInternalServerError)
+// 		return
+// 	}
+
+// 	if err := publishOrderCreated(r.Context(), order); err != nil { ///////////
+// 		log.Println("kafka publish error:", err)
+// 	}
+
+// 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+// 	w.WriteHeader(http.StatusCreated)
+// 	json.NewEncoder(w).Encode(order)
+// }
+
 func createOrderHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "POST only", http.StatusMethodNotAllowed)
@@ -244,30 +435,27 @@ func createOrderHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req CreateOrderRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "broken json", http.StatusBadRequest)
+	authHeader := r.Header.Get("Authorization")
+
+	cart, err := fetchCart(r.Context(), authHeader)
+	if err != nil {
+		log.Println("fetchCart error:", err)
+		http.Error(w, "failed to fetch cart", http.StatusInternalServerError)
 		return
 	}
 
-	if req.TotalAmount < 0 {
-		http.Error(w, "total_amount must be >= 0", http.StatusBadRequest)
+	if len(cart.Items) == 0 {
+		http.Error(w, "cart is empty", http.StatusBadRequest)
 		return
 	}
 
 	tx, err := pool.Begin(r.Context())
 	if err != nil {
+		log.Println("begin tx error:", err)
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
 	}
 	defer tx.Rollback(r.Context())
-
-	kafkaWriter = &kafka.Writer{ //создание врайтера для отправки сообшщения
-		Addr:     kafka.TCP("localhost:9092"),
-		Topic:    "test-topic",
-		Balancer: &kafka.LeastBytes{},
-	}
-	defer kafkaWriter.Close() //
 
 	var nextNumber int
 	err = tx.QueryRow(r.Context(), `
@@ -276,7 +464,7 @@ func createOrderHandler(w http.ResponseWriter, r *http.Request) {
 		WHERE user_id = $1
 	`, userID).Scan(&nextNumber)
 	if err != nil {
-		log.Println("next order number error:", err)
+		log.Println("nextNumber query error:", err)
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
 	}
@@ -286,7 +474,7 @@ func createOrderHandler(w http.ResponseWriter, r *http.Request) {
 		INSERT INTO orders (user_id, user_order_number, total_amount)
 		VALUES ($1, $2, $3)
 		RETURNING id, user_id, user_order_number, total_amount, payment_status, created_at
-	`, userID, nextNumber, req.TotalAmount).Scan(
+	`, userID, nextNumber, cart.TotalPrice).Scan(
 		&order.ID,
 		&order.UserID,
 		&order.UserOrderNumber,
@@ -295,18 +483,41 @@ func createOrderHandler(w http.ResponseWriter, r *http.Request) {
 		&order.CreatedAt,
 	)
 	if err != nil {
-		log.Println("create order error:", err)
+		log.Println("insert order error:", err)
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
+	}
+
+	for _, item := range cart.Items {
+		lineSum := item.Price * float64(item.Qty)
+
+		_, err := tx.Exec(r.Context(), `
+			INSERT INTO order_items (order_id, sku, name, image_url, qty, price, line_sum)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
+		`, order.ID, item.SKU, item.Name, item.ImageURL, item.Qty, item.Price, lineSum)
+		if err != nil {
+			log.Println("insert order_item error:", err)
+			http.Error(w, "db error", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	if err := tx.Commit(r.Context()); err != nil {
+		log.Println("commit error:", err)
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
 	}
 
-	if err := publishOrderCreated(r.Context(), order); err != nil { ///////////
-		log.Println("kafka publish error:", err)
+	order.Items = make([]OrderItem, 0, len(cart.Items))
+	for _, item := range cart.Items {
+		order.Items = append(order.Items, OrderItem{
+			SKU:      item.SKU,
+			Name:     item.Name,
+			ImageURL: item.ImageURL,
+			Qty:      item.Qty,
+			Price:    item.Price,
+			Sum:      item.Sum,
+		})
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")

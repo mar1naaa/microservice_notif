@@ -362,15 +362,18 @@
         return "http://localhost:9003/auth.html";
       }
 
-      const params = new URLSearchParams({
-        token: token,
-        id: String(user.id || ""),
-        name: user.name || "",
-        email: user.email || "",
-        role: user.role || ""
-      });
+      const url = new URL(baseUrl);
 
-      return `${baseUrl}?${params.toString()}`;
+      url.searchParams.set("token", token);
+      url.searchParams.set("id", String(user.id || ""));
+      url.searchParams.set("name", user.name || "");
+      url.searchParams.set("email", user.email || "");
+      url.searchParams.set("role", user.role || "");
+
+      // чтобы браузер не открывал старую версию страницы
+      url.searchParams.set("_v", String(Date.now()));
+
+      return url.toString();
     }
 
     function openMainPage(event) {

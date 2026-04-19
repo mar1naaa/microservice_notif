@@ -1,263 +1,349 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Журнал событий</title>
   <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #18212f;
+      --muted: #667085;
+      --line: #dbe2ea;
+      --head: #162238;
+      --green-bg: #d8f3dc;
+      --green-text: #146c43;
+      --red-bg: #fde2e4;
+      --red-text: #b42318;
+      --blue-bg: #dbeafe;
+      --blue-text: #1d4ed8;
+    }
+
+    * { box-sizing: border-box; }
+
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: #f4f6f8;
-      color: #222;
+      background: var(--bg);
+      color: var(--text);
     }
 
-    .wrapper {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 24px;
+    .container {
+      max-width: 1450px;
+      margin: 24px auto;
+      padding: 0 20px;
     }
 
     h1 {
-      margin-bottom: 8px;
+      margin: 0 0 8px;
+      font-size: 52px;
+      line-height: 1.05;
+      font-weight: 800;
     }
 
-    .status {
+    .sub {
+      color: var(--muted);
       margin-bottom: 20px;
-      color: #666;
+      font-size: 16px;
     }
 
-    .table-box {
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 0;
+      flex-wrap: wrap;
+    }
+
+    select, input {
+      height: 38px;
+      border: 1px solid #98a2b3;
       background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      padding: 0 10px;
+      font-size: 16px;
+      outline: none;
+    }
+
+    select { min-width: 130px; }
+    input { min-width: 220px; }
+
+    .table-wrap {
+      background: var(--card);
+      border-radius: 14px;
       overflow: hidden;
+      box-shadow: 0 2px 10px rgba(16, 24, 40, 0.06);
+      border: 1px solid var(--line);
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 14px;
+      table-layout: fixed;
     }
 
-    thead {
-      background: #1f2937;
+    thead th {
+      background: var(--head);
       color: white;
-    }
-
-    th, td {
-      padding: 12px 10px;
-      border-bottom: 1px solid #e5e7eb;
       text-align: left;
-      vertical-align: top;
+      padding: 14px 12px;
+      font-size: 16px;
+      font-weight: 700;
     }
 
-    tbody tr:hover {
-      background: #f9fafb;
+    tbody td {
+      padding: 13px 12px;
+      border-top: 1px solid var(--line);
+      vertical-align: middle;
+      word-wrap: break-word;
+      font-size: 15px;
     }
 
     .badge {
       display: inline-block;
-      padding: 4px 8px;
+      padding: 4px 10px;
       border-radius: 999px;
-      font-size: 12px;
-      font-weight: bold;
+      font-size: 14px;
+      font-weight: 700;
       white-space: nowrap;
-      background: #e0ecff;
-      color: #1d4ed8;
     }
 
-    .badge.success {
-      background: #dcfce7;
-      color: #166534;
-    }
+    .ok { background: var(--green-bg); color: var(--green-text); }
+    .err { background: var(--red-bg); color: var(--red-text); }
+    .info { background: var(--blue-bg); color: var(--blue-text); }
 
-    .badge.error {
-      background: #fee2e2;
-      color: #991b1b;
-    }
-
-    .badge.cart {
-      background: #fef3c7;
-      color: #92400e;
-    }
-
-    .raw {
-      max-width: 420px;
-      white-space: pre-wrap;
-      word-break: break-word;
-      font-family: monospace;
-      font-size: 12px;
-      color: #444;
+    .muted {
+      color: var(--muted);
     }
 
     .empty {
-      padding: 18px;
-      color: #666;
+      padding: 18px 12px;
+      color: var(--muted);
+    }
+
+    .status {
+      margin: 0 0 12px;
+      font-size: 15px;
+      color: var(--muted);
+    }
+
+    .status.ok {
+      color: #167c45;
+    }
+
+    .status.err {
+      color: #b42318;
+    }
+
+    @media (max-width: 1200px) {
+      .table-wrap {
+        overflow-x: auto;
+      }
+
+      table {
+        min-width: 1300px;
+      }
     }
   </style>
 </head>
 <body>
-<div class="wrapper">
-  <h1>Журнал событий</h1>
-  <div class="status" id="status">Подключение...</div>
+  <div class="container">
+    <h1>Журнал событий</h1>
+    <div id="status" class="status">Подключение...</div>
 
-  <div class="filters">
-    <select id="eventTypeFilter">
-      <option value="">Все события</option>
-    </select>
+    <div class="toolbar">
+      <select id="typeFilter">
+        <option value="">Все события</option>
+      </select>
+      <input id="searchInput" type="text" placeholder="Поиск" />
+    </div>
 
-    <input
-      type="text"
-      id="searchInput"
-      placeholder="Поиск"
-    />
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 190px;">Время</th>
+            <th style="width: 170px;">Тип события</th>
+            <th style="width: 90px;">User ID</th>
+            <th style="width: 190px;">Email</th>
+            <th style="width: 120px;">SKU</th>
+            <th style="width: 180px;">Имя пользователя</th> <!-- [NEW] -->
+            <th style="width: 220px;">Название товара</th> <!-- [UPDATED] теперь это название продукта -->
+            <th style="width: 220px;">Причина</th>
+          </tr>
+        </thead>
+        <tbody id="eventsBody">
+          <tr>
+            <td colspan="8" class="empty">Загрузка данных...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
-
-  <div class="table-box">
-    <table>
-      <thead>
-        <tr>
-          <th>Время</th>
-          <th>Тип события</th>
-          <th>User ID</th>
-          <th>Email</th>
-          <th>SKU</th>
-          <th>Имя</th>
-          <th>Причина</th>
-        </tr>
-      </thead>
-      <tbody id="tbody">
-        <tr>
-          <td colspan="8" class="empty">Пока событий нет</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</div>
 
   <script>
-  const statusEl = document.getElementById("status");
-  const tbody = document.getElementById("tbody");
-  const eventTypeFilter = document.getElementById("eventTypeFilter");
-  const searchInput = document.getElementById("searchInput");
+    const tbody = document.getElementById("eventsBody");
+    const statusEl = document.getElementById("status");
+    const typeFilter = document.getElementById("typeFilter");
+    const searchInput = document.getElementById("searchInput");
 
-  const allEvents = [];
+    let allEvents = [];
 
-  function escapeHtml(value) {
-    if (value === null || value === undefined) return "";
-    return String(value)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;");
-  }
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
 
-  function badgeClass(eventType) {
-    if (!eventType) return "badge";
-    if (eventType.includes("failed")) return "badge error";
-    if (
-      eventType.includes("added") ||
-      eventType.includes("registered") ||
-      eventType.includes("logged_in")
-    ) return "badge success";
-    if (eventType.includes("item") || eventType.includes("cart")) return "badge cart";
-    return "badge";
-  }
+    function badgeClass(type) {
+      const t = (type || "").toLowerCase();
 
-  function getSearchText(event) {
-    return [
-      event.time,
-      event.event_type,
-      event.user_id,
-      event.email,
-      event.sku,
-      event.name,
-      event.reason,
-    ]
-      .join(" ")
-      .toLowerCase();
-  }
+      if (t.includes("failed") || t.includes("error")) return "err";
+      if (t.includes("registered") || t.includes("created")) return "info";
+      return "ok";
+    }
 
-  function updateEventTypeOptions() {
-    const currentValue = eventTypeFilter.value;
-    const uniqueTypes = [...new Set(allEvents.map(e => e.event_type).filter(Boolean))].sort();
+    function renderTypeBadge(type) {
+      return `<span class="badge ${badgeClass(type)}">${escapeHtml(type || "")}</span>`;
+    }
 
-    eventTypeFilter.innerHTML = `<option value="">Все события</option>`;
+    function updateFilterOptions() {
+      const current = typeFilter.value;
+      const types = [...new Set(allEvents.map(e => e.event_type).filter(Boolean))].sort();
 
-    uniqueTypes.forEach(type => {
-      const option = document.createElement("option");
-      option.value = type;
-      option.textContent = type;
-      eventTypeFilter.appendChild(option);
-    });
+      typeFilter.innerHTML = `<option value="">Все события</option>` +
+        types.map(type => `<option value="${escapeHtml(type)}">${escapeHtml(type)}</option>`).join("");
 
-    eventTypeFilter.value = currentValue;
-  }
+      typeFilter.value = current;
+    }
 
-  function renderTable() {
-    const selectedType = eventTypeFilter.value;
-    const searchValue = searchInput.value.trim().toLowerCase();
+    function renderTable() {
+      const typeValue = typeFilter.value.trim().toLowerCase();
+      const q = searchInput.value.trim().toLowerCase();
 
-    const filtered = allEvents.filter(event => {
-      const matchesType = !selectedType || event.event_type === selectedType;
-      const matchesSearch = !searchValue || getSearchText(event).includes(searchValue);
-      return matchesType && matchesSearch;
-    });
+      const filtered = allEvents.filter(event => {
+        const matchesType = !typeValue || (event.event_type || "").toLowerCase() === typeValue;
 
-    if (filtered.length === 0) {
-      tbody.innerHTML = `
+        const haystack = [
+          event.time,
+          event.event_type,
+          event.user_id,
+          event.email,
+          event.sku,
+          event.user_name,     // [NEW]
+          event.product_name,  // [NEW]
+          event.reason
+        ].join(" ").toLowerCase();
+
+        const matchesSearch = !q || haystack.includes(q);
+        return matchesType && matchesSearch;
+      });
+
+      if (!filtered.length) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="empty">Ничего не найдено</td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(event => `
         <tr>
-          <td colspan="8" class="empty">Ничего не найдено</td>
+          <td>${escapeHtml(event.time || "")}</td>
+          <td>${renderTypeBadge(event.event_type)}</td>
+          <td>${escapeHtml(event.user_id || "")}</td>
+          <td>${escapeHtml(event.email || "")}</td>
+          <td>${escapeHtml(event.sku || "")}</td>
+          <td>${escapeHtml(event.user_name || "")}</td> <!-- [NEW] имя пользователя -->
+          <td>${escapeHtml(event.product_name || "")}</td> <!-- [UPDATED] имя = название продукта -->
+          <td>${escapeHtml(event.reason || "")}</td>
         </tr>
-      `;
-      return;
+      `).join("");
     }
 
-    tbody.innerHTML = filtered.map(event => `
-      <tr>
-        <td>${escapeHtml(event.time)}</td>
-        <td><span class="${badgeClass(event.event_type)}">${escapeHtml(event.event_type)}</span></td>
-        <td>${escapeHtml(event.user_id)}</td>
-        <td>${escapeHtml(event.email)}</td>
-        <td>${escapeHtml(event.sku)}</td>
-        <td>${escapeHtml(event.name)}</td>
-        <td>${escapeHtml(event.reason)}</td>
-      </tr>
-    `).join("");
-  }
-
-  function addEvent(event) {
-    allEvents.unshift(event);
-
-    if (allEvents.length > 100) {
-      allEvents.length = 100;
+    function normalizeEvent(event) {
+      return {
+        id: event.id ?? null,
+        time: event.time ?? "",
+        event_type: event.event_type ?? "",
+        user_id: event.user_id ?? "",
+        email: event.email ?? "",
+        sku: event.sku ?? "",
+        user_name: event.user_name ?? "",         // [NEW]
+        product_name: event.product_name ?? "",   // [NEW]
+        reason: event.reason ?? ""
+      };
     }
 
-    updateEventTypeOptions();
-    renderTable();
-  }
+    async function loadHistory() {
+      const res = await fetch("/api/history");
+      if (!res.ok) {
+        throw new Error("Не удалось загрузить историю");
+      }
 
-  eventTypeFilter.addEventListener("change", renderTable);
-  searchInput.addEventListener("input", renderTable);
-
-  const source = new EventSource("/api/events");
-
-  source.onopen = function () {
-    statusEl.textContent = "Подключено. Новые события появляются автоматически.";
-  };
-
-  source.onmessage = function (e) {
-    try {
-      const event = JSON.parse(e.data);
-      addEvent(event);
-    } catch (err) {
-      console.error("Ошибка разбора события:", err);
+      const data = await res.json();
+      allEvents = Array.isArray(data) ? data.map(normalizeEvent) : [];
+      updateFilterOptions();
+      renderTable();
     }
-  };
-  source.onerror = function () {
-    statusEl.textContent = "Ошибка соединения. Пытаюсь переподключиться...";
-  };
+
+    function prependEvent(event) {
+      const normalized = normalizeEvent(event);
+
+      allEvents.unshift(normalized);
+
+      if (allEvents.length > 100) {
+        allEvents = allEvents.slice(0, 100);
+      }
+
+      updateFilterOptions();
+      renderTable();
+    }
+
+    function connectSSE() {
+      const source = new EventSource("/api/events");
+
+      source.onopen = () => {
+        statusEl.textContent = "Подключено. Новые события появляются автоматически.";
+        statusEl.className = "status ok";
+      };
+
+      source.onmessage = (e) => {
+        try {
+          const event = JSON.parse(e.data);
+          prependEvent(event);
+        } catch (err) {
+          console.error("Ошибка разбора SSE:", err);
+        }
+      };
+
+      source.onerror = () => {
+        statusEl.textContent = "Соединение потеряно. Пытаемся переподключиться...";
+        statusEl.className = "status err";
+      };
+    }
+
+    typeFilter.addEventListener("change", renderTable);
+    searchInput.addEventListener("input", renderTable);
+
+    (async function init() {
+      try {
+        await loadHistory();
+        connectSSE();
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Ошибка загрузки данных";
+        statusEl.className = "status err";
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="empty">Не удалось загрузить данные</td>
+          </tr>
+        `;
+      }
+    })();
   </script>
 </body>
 </html>
